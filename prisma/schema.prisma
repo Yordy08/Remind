@@ -1,0 +1,146 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mongodb"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  nombre    String
+  apellido  String
+  celular   String
+  email     String   @unique
+  password  String
+  tempPassword        String?
+  tempPasswordExpires DateTime?
+
+  foto             String?
+  fechaNacimiento  DateTime?
+  bio              String?
+  estado           String   @default("ACTIVO")
+  role             String   @default("USER") // USER | ADMIN
+  reviewRequired   Boolean  @default(false)
+  paymentProofUrl  String?
+  subscriptionStatus String @default("PENDING") // PENDING | APPROVED
+
+  createdAt DateTime @default(now())
+
+  // RELACIONES
+  posts     Post[]
+  comments  Comment[]
+  likes     Like[]
+  userTags  UserTag[]
+  notifications Notification[]
+  reviews   Review[]
+  complaints Complaint[]
+}
+
+model Post {
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+  titulo      String?
+  descripcion String?
+  categoria   String   @default("General")
+  imagen      String?  // LEGACY: compatibilidad con posts antiguos de 1 sola imagen
+  imagenes    String[] // NUEVO: array de URLs para múltiples imágenes
+  estado      String   // PUBLICO | PRIVADO
+
+  userId      String?   @db.ObjectId
+  createdAt   DateTime @default(now())
+
+  user     User? @relation(fields: [userId], references: [id])
+
+  // RELACIONES SOCIALES
+  comments Comment[]
+  likes    Like[]
+  tags     Tag[]
+  userTags UserTag[]
+}
+
+model Like {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+
+  userId    String   @db.ObjectId
+  postId    String   @db.ObjectId
+
+  user      User @relation(fields: [userId], references: [id])
+  post      Post @relation(fields: [postId], references: [id])
+
+  type      String   @default("LOVE") // ME ENCANTA
+  createdAt DateTime @default(now())
+}
+
+model Comment {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+
+  text      String
+
+  userId    String   @db.ObjectId
+  postId    String   @db.ObjectId
+  parentCommentId String? @db.ObjectId
+
+  user      User @relation(fields: [userId], references: [id])
+  post      Post @relation(fields: [postId], references: [id])
+
+  createdAt DateTime @default(now())
+}
+
+model Tag {
+  id      String @id @default(auto()) @map("_id") @db.ObjectId
+
+  name    String
+
+  postId  String @db.ObjectId
+  post    Post   @relation(fields: [postId], references: [id])
+}
+
+model UserTag {
+  id     String @id @default(auto()) @map("_id") @db.ObjectId
+
+  userId String @db.ObjectId
+  user   User   @relation(fields: [userId], references: [id])
+
+  postId String @db.ObjectId
+  post   Post   @relation(fields: [postId], references: [id])
+
+  createdAt DateTime @default(now())
+}
+
+model Notification {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  title     String
+  message   String
+  read      Boolean  @default(false)
+
+  userId    String   @db.ObjectId
+  user      User     @relation(fields: [userId], references: [id])
+
+  createdAt DateTime @default(now())
+}
+
+model Review {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  rating    Int
+  text      String
+
+  userId    String   @db.ObjectId
+  user      User     @relation(fields: [userId], references: [id])
+
+  createdAt DateTime @default(now())
+}
+
+model Complaint {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  subject   String
+  message   String
+  status    String   @default("PENDING") // PENDING | REVIEWED | ANSWERED
+  response  String?
+
+  userId    String   @db.ObjectId
+  user      User     @relation(fields: [userId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}

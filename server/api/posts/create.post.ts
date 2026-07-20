@@ -1,0 +1,103 @@
+import prisma from '../../utils/prisma'
+import cloudinary from '../../utils/cloudinary'
+import { getUserFromToken } from '../../utils/auth'
+
+export default defineEventHandler(async (event) => {
+
+  const user = getUserFromToken(event)
+
+  if (!user) {
+    throw createError({
+      statusCode: 401,
+      statusMessage: 'Debes iniciar sesión para publicar'
+    })
+  }
+
+  const form = await readMultipartFormData(event)
+
+  // 🔥 Soportar múltiples archivos
+  const files = form?.filter(f => f.name === 'file') || []
+  const descripcion = form?.find(f => f.name === 'descripcion')?.data.toString()
+  const categoria = form?.find(f => f.name === 'categoria')?.data.toString() || 'General'
+  const estado = form?.find(f => f.name === 'estado')?.data.toString() || 'PUBLICO'
+  const taggedUserIdsRaw = form?.find(f => f.name === 'taggedUserIds')?.data.toString() || '[]'
+
+  let taggedUserIds: string[] = []
+  try {
+    taggedUserIds = JSON.parse(taggedUserIdsRaw)
+    if (!Array.isArray(taggedUserIds)) taggedUserIds = []
+  } catch {
+    taggedUserIds = []
+  }
+
+  if (!files.length) {
+    throw createError({
+      statusCode: 400,
+      statusMessage: 'Debes subir al menos una imagen'
+    })
+  }
+
+  const MAX_IMAGES = 10
+  if (files.length > MAX_IMAGES) {
+    throw createError({
+      statusCode: 400,
+      statusMessage: `Máximo ${MAX_IMAGES} imágenes permitidas`
+    })
+  }
+
+  try {
+
+    // 🔥 1. Subir todas las imágenes a Cloudinary en paralelo
+    const uploadPromises = files.map((file) => {
+      return new Promise<string>((resolve, reject) => {
+        cloudinary.uploader.upload_stream(
+          { folder: 'entrenos/posts' },
+          (error, result) => {
+            if (error) reject(error)
+            // @ts-ignore
+            else resolve(result.secure_url)
+          }
+        // @ts-ignore
+        ).end(file.data)
+      })
+    })
+
+    const imageUrls = await Promise.all(uploadPromises)
+
+    // 🔥 2. Guardar en MongoDB con array de imágenes + imagen legacy (primera foto)
+    const post = await prisma.post.create({
+      data: {
+        descripcion: descripcion || '',
+        categoria,
+        imagenes: imageUrls,
+        imagen: imageUrls[0] || '', // LEGACY: guardar primera imagen para compatibilidad
+        estado,
+        userId: user.id
+      }
+    })
+
+    // 🔥 3. Crear etiquetas de usuarios
+    for (const userId of taggedUserIds) {
+      await prisma.userTag.create({
+        data: {
+          userId,
+          postId: post.id
+        }
+      })
+    }
+
+    return {
+      success: true,
+      post
+    }
+
+  } catch (error: any) {
+    console.error('Error creando post:', error)
+
+    throw createError({
+      statusCode: 500,
+      statusMessage: error?.message || 'Error creando post'
+    })
+  }
+
+})
