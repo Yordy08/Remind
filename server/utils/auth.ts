@@ -3,6 +3,10 @@ import jwt from 'jsonwebtoken'
 export const getJwtSecret = () => {
   const secret = process.env.JWT_SECRET
 
+  if (!secret && process.env.NODE_ENV !== 'production') {
+    return 'remind-local-development-secret'
+  }
+
   if (!secret) {
     throw createError({ statusCode: 500, statusMessage: 'JWT_SECRET no configurado' })
   }
