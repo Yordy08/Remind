@@ -4,7 +4,7 @@
   <div class="container">
 
     <NuxtLink to="/" class="navbar-brand fw-bold">
-      EntreNos
+      Remind
     </NuxtLink>
 
     <div class="d-none d-lg-flex gap-2 ms-4 me-auto">
@@ -116,7 +116,7 @@ const notifyBrowser = async (notification) => {
   if (!process.client || !('Notification' in window) || Notification.permission !== 'granted') return
   if (!('serviceWorker' in navigator)) return
 
-  const shownKey = `entrenos_notification_${notification.id}`
+  const shownKey = `remind_notification_${notification.id}`
   if (localStorage.getItem(shownKey)) return
 
   const registration = await navigator.serviceWorker.ready

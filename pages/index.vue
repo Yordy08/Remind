@@ -5,7 +5,7 @@
     <div class="container py-5">
       <div class="row align-items-center g-4">
         <div class="col-lg-7">
-          <p class="eyebrow mb-2">EntreNos Fotos</p>
+          <p class="eyebrow mb-2">Remind</p>
           <h1 class="display-5 fw-bold mb-3">Tu archivo personal de recuerdos</h1>
           <p class="lead text-muted mb-4">
             Organiza tus fotografías por álbumes, marca favoritas y encuentra rápido cada momento que guardaste.

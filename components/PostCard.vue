@@ -16,7 +16,7 @@
 
   <div class="card-body">
 
-    <p>Publicación de EntreNos 💙</p>
+    <p>Publicación de Remind 💙</p>
 
     <div class="d-flex gap-2">
 

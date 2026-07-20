@@ -4,7 +4,7 @@
     <p class="eyebrow mb-2">Solicitud del administrador</p>
     <h4 class="fw-bold mb-2">Comparte tu reseña</h4>
     <p class="text-muted">
-      Para continuar, deja una reseña breve sobre tu experiencia usando EntreNos Fotos.
+      Para continuar, deja una reseña breve sobre tu experiencia usando Remind.
     </p>
 
     <label class="form-label fw-semibold">Calificación</label>

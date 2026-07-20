@@ -4,7 +4,7 @@
     <p class="eyebrow mb-2">Aplicación móvil</p>
     <h4 class="fw-bold mb-2">Descarga la app en tu celular</h4>
     <p class="text-muted mb-0">
-      Instala EntreNos como PWA para abrirla como app y recibir avisos del administrador cuando tengas notificaciones nuevas.
+      Instala Remind como PWA para abrirla como app y recibir avisos del administrador cuando tengas notificaciones nuevas.
     </p>
   </div>
 

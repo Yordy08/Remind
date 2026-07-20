@@ -6,7 +6,7 @@
 <div class="card p-4 shadow">
 
 <h3 class="text-center text-primary mb-4">
-Login EntreNos
+Login Remind
 </h3>
 
 <input v-model="email" class="form-control mb-3" placeholder="Correo">

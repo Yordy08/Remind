@@ -5,13 +5,13 @@ export default defineNuxtConfig({
 
   app: {
     head: {
-      title: 'EntreNos',
+      title: 'Remind',
       meta: [
         { name: 'description', content: 'Almacenamiento privado de fotos, álbumes y notificaciones administrativas' },
         { name: 'theme-color', content: '#0d6efd' },
         { name: 'mobile-web-app-capable', content: 'yes' },
         { name: 'apple-mobile-web-app-capable', content: 'yes' },
-        { name: 'apple-mobile-web-app-title', content: 'EntreNos' },
+        { name: 'apple-mobile-web-app-title', content: 'Remind' },
         { name: 'apple-mobile-web-app-status-bar-style', content: 'default' }
       ],
       link: [

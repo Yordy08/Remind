@@ -1,4 +1,4 @@
-# EntreNos
+# Remind
 
 App Nuxt para almacenamiento privado de fotos con registro por suscripcion, panel de administrador, notificaciones, reclamos, PWA y monitoreo de Cloudinary.
 
@@ -25,7 +25,7 @@ bun install
 Create a `.env` file using `.env.example` as reference:
 
 ```bash
-DATABASE_URL="mongodb+srv://USER:PASSWORD@cluster.mongodb.net/entrenos"
+DATABASE_URL="mongodb+srv://USER:PASSWORD@cluster.mongodb.net/remind"
 JWT_SECRET="change-this-secret"
 CLOUDINARY_CLOUD_NAME="your-cloud-name"
 CLOUDINARY_API_KEY="your-api-key"

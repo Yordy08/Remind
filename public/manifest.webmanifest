@@ -1,6 +1,6 @@
 {
-  "name": "EntreNos Fotos",
-  "short_name": "EntreNos",
+  "name": "Remind",
+  "short_name": "Remind",
   "description": "Almacenamiento privado de fotos, álbumes y notificaciones administrativas.",
   "start_url": "/",
   "scope": "/",

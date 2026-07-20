@@ -1,4 +1,4 @@
-const CACHE_NAME = 'entrenos-pwa-v1'
+const CACHE_NAME = 'remind-pwa-v1'
 const APP_SHELL = ['/', '/manifest.webmanifest', '/app-icon.svg']
 
 self.addEventListener('install', (event) => {
@@ -26,7 +26,7 @@ self.addEventListener('fetch', (event) => {
 self.addEventListener('message', (event) => {
   if (event.data?.type !== 'SHOW_NOTIFICATION') return
 
-  const title = event.data.title || 'EntreNos'
+  const title = event.data.title || 'Remind'
   const options = {
     body: event.data.body || 'Tienes una nueva notificación.',
     icon: '/app-icon.svg',
