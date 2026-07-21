@@ -1,9 +1,9 @@
 <template>
-<div class="container py-5">
+<div class="login-page container py-5">
 
 <div class="col-md-5 mx-auto">
 
-<div class="card p-4 shadow">
+<div class="login-card card p-4 shadow">
 
 <h3 class="text-center text-primary mb-4">
 Login Remind
@@ -63,3 +63,37 @@ const login = async () => {
   }
 }
 </script>
+
+<style scoped>
+.login-page {
+  min-height: min(720px, calc(100vh - 140px));
+  display: flex;
+  align-items: center;
+}
+
+.login-page > div {
+  width: 100%;
+}
+
+.login-card {
+  border: 0;
+  border-radius: 1.25rem;
+}
+
+@media (max-width: 576px) {
+  .login-page {
+    align-items: flex-start;
+    padding-top: 2rem !important;
+  }
+
+  .login-card {
+    border-radius: 1rem;
+    padding: 1.35rem !important;
+  }
+
+  .form-control,
+  .btn {
+    min-height: 2.8rem;
+  }
+}
+</style>

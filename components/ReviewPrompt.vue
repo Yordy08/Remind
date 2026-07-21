@@ -96,4 +96,22 @@ const submitReview = async () => {
   letter-spacing: 0.14em;
   text-transform: uppercase;
 }
+
+@media (max-width: 576px) {
+  .review-overlay {
+    align-items: flex-end;
+    padding: 0.75rem;
+  }
+
+  .review-modal {
+    border-radius: 1rem 1rem 0.75rem 0.75rem;
+    padding: 1.25rem;
+  }
+
+  .form-select,
+  .form-control,
+  .btn {
+    min-height: 2.75rem;
+  }
+}
 </style>

@@ -143,6 +143,8 @@ onMounted(() => {
   .pwa-card {
     align-items: stretch;
     flex-direction: column;
+    border-radius: 1rem;
+    padding: 1.25rem;
   }
 
   .pwa-actions {

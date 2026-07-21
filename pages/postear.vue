@@ -1,7 +1,7 @@
 <template>
-<div class="container py-5">
+<div class="post-page container py-5">
 
-<div class="card p-4 shadow">
+<div class="post-card card p-4 shadow">
 
 <!-- INPUT IMÁGENES MÚLTIPLES -->
 <input
@@ -240,5 +240,35 @@ const subirPost = async () => {
 
 .btn-remove:hover {
   background: rgba(220, 53, 69, 0.9);
+}
+
+.post-card {
+  border: 0;
+  border-radius: 1.25rem;
+}
+
+@media (max-width: 576px) {
+  .post-page {
+    padding-top: 1.5rem !important;
+  }
+
+  .post-card {
+    border-radius: 1rem;
+    padding: 1.25rem !important;
+  }
+
+  .preview-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+
+  .form-control,
+  .form-select,
+  .btn {
+    min-height: 2.8rem;
+  }
+
+  textarea.form-control {
+    min-height: 7rem;
+  }
 }
 </style>

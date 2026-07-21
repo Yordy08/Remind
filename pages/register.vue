@@ -1,9 +1,9 @@
 <template>
-<div class="container py-5">
+<div class="register-page container py-5">
 
 <div class="col-md-7 mx-auto">
 
-<div class="card p-4 shadow">
+<div class="register-card card p-4 shadow">
 
 <h2 class="text-center mb-2 text-primary">
 Suscribirse
@@ -299,5 +299,53 @@ const registrar = async () => {
   max-height: 260px;
   max-width: 100%;
   object-fit: contain;
+}
+
+.register-card {
+  border: 0;
+  border-radius: 1.25rem;
+}
+
+@media (max-width: 576px) {
+  .register-page {
+    padding-top: 1.5rem !important;
+  }
+
+  .register-card {
+    border-radius: 1rem;
+    padding: 1.25rem !important;
+  }
+
+  .steps {
+    gap: 0.5rem;
+  }
+
+  .steps span {
+    font-size: 0.85rem;
+    padding: 0.55rem 0.35rem;
+  }
+
+  .form-control,
+  .btn {
+    min-height: 2.8rem;
+  }
+
+  .payment-card {
+    padding: 1rem;
+  }
+
+  .qr-image {
+    max-width: 220px;
+  }
+
+  .input-group {
+    flex-direction: column;
+  }
+
+  .input-group .form-control,
+  .input-group .btn {
+    border-radius: 0.75rem !important;
+    width: 100%;
+  }
 }
 </style>

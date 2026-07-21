@@ -49,7 +49,7 @@
                 </span>
               </div>
             </div>
-            <div class="profile-actions d-flex gap-2">
+            <div v-if="isOwnProfile" class="profile-actions d-flex gap-2">
               <button class="btn btn-primary d-flex align-items-center gap-2">
                 <span>➕</span>
                 <span>Seguir</span>
@@ -212,7 +212,7 @@
                 <p class="text-muted">{{ post.descripcion }}</p>
 
                 <!-- Botones -->
-                <div class="d-flex gap-2 mb-3">
+                <div v-if="isOwnProfile" class="d-flex gap-2 mb-3">
                   <button
                     class="btn btn-sm"
                     :class="userLiked(post) ? 'btn-danger' : 'btn-light'"
@@ -229,6 +229,9 @@
 
                 <!-- Comentarios -->
                 <div class="comments-section">
+                  <p v-if="!isOwnProfile" class="small text-muted mb-3">
+                    Perfil en modo lectura. Puedes ver sus publicaciones y comentarios públicos, pero no realizar acciones.
+                  </p>
                   <div v-if="post.comments?.length" class="mb-3">
                     <div
                       v-for="comment in getVisibleComments(post)"
@@ -304,7 +307,7 @@
                   </div>
 
                   <!-- Input comentario -->
-                  <div class="input-group input-group-sm">
+                  <div v-if="isOwnProfile" class="input-group input-group-sm">
                     <input
                       v-model="commentInputs[post.id]"
                       type="text"
@@ -655,6 +658,10 @@ const changePassword = async () => {
 }
 
 @media (max-width: 768px) {
+  .profile-container {
+    overflow-x: hidden;
+  }
+
   .cover-photo {
     height: 180px;
   }
@@ -672,8 +679,24 @@ const changePassword = async () => {
     justify-content: center;
   }
 
+  .profile-actions .btn {
+    flex: 1;
+  }
+
   .profile-meta {
     justify-content: center;
+  }
+
+  .profile-stats-bar .row {
+    row-gap: 0.75rem;
+  }
+
+  .card {
+    border-radius: 1rem;
+  }
+
+  .post-image-single img {
+    width: 100%;
   }
 }
 </style>

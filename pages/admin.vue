@@ -670,4 +670,51 @@ onUnmounted(() => {
   border-radius: 0.75rem;
   max-width: 100%;
 }
+
+@media (max-width: 768px) {
+  .admin-page .container {
+    padding-top: 1.5rem !important;
+  }
+
+  .stat-card {
+    padding: 1rem;
+  }
+
+  .cloudinary-metrics {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .table-responsive {
+    border: 1px solid #edf0f3;
+    border-radius: 1rem;
+  }
+
+  .table {
+    min-width: 860px;
+  }
+
+  .btn-group.flex-wrap {
+    display: grid;
+    gap: 0.35rem;
+  }
+
+  .notification-modal,
+  .proof-modal {
+    border-radius: 1rem;
+    max-height: 88vh;
+    overflow-y: auto;
+    padding: 1rem;
+  }
+
+  .proof-frame {
+    max-height: 58vh;
+    padding: 0.65rem;
+  }
+}
+
+@media (max-width: 420px) {
+  .cloudinary-metrics {
+    grid-template-columns: 1fr;
+  }
+}
 </style>

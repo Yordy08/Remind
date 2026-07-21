@@ -1,5 +1,5 @@
 <template>
-<nav class="navbar navbar-expand-lg navbar-dark bg-primary shadow-sm sticky-top">
+<nav class="navbar navbar-expand-lg navbar-dark bg-primary shadow-sm sticky-top app-navbar">
 
   <div class="container">
 
@@ -36,7 +36,7 @@
       placeholder="Buscar..."
     />
 
-    <div class="d-flex gap-2 align-items-center">
+    <div class="nav-actions d-flex gap-2 align-items-center">
 
       <!-- Usuario NO autenticado -->
       <template v-if="!isLoggedIn">
@@ -171,6 +171,23 @@ onUnmounted(() => {
 </script>
 
 <style scoped>
+.app-navbar {
+  --nav-blue: #0d6efd;
+}
+
+.navbar .container {
+  gap: 0.75rem;
+}
+
+.navbar-brand {
+  letter-spacing: -0.02em;
+}
+
+.nav-actions {
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
 .notifications-menu {
   background: #fff;
   border-radius: 0.75rem;
@@ -188,5 +205,44 @@ onUnmounted(() => {
   border-bottom: 1px solid #f1f3f5;
   padding: 0.75rem;
   white-space: normal;
+}
+
+@media (max-width: 991px) {
+  .navbar .container {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .nav-actions {
+    display: grid !important;
+    gap: 0.45rem !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    width: 100%;
+  }
+
+  .nav-actions > * {
+    min-width: 0;
+  }
+
+  .nav-actions .btn {
+    align-items: center;
+    display: inline-flex;
+    justify-content: center;
+    min-height: 2.35rem;
+    width: 100%;
+  }
+
+  .notifications-menu {
+    left: 0;
+    max-width: calc(100vw - 2rem);
+    min-width: min(360px, calc(100vw - 2rem));
+    right: auto;
+  }
+}
+
+@media (max-width: 380px) {
+  .nav-actions {
+    grid-template-columns: 1fr;
+  }
 }
 </style>

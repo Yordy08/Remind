@@ -22,6 +22,12 @@
                 Crear cuenta
               </NuxtLink>
             </template>
+            <a href="#quienes-somos" class="btn btn-light btn-lg rounded-pill px-4 border">
+              Quiénes somos
+            </a>
+            <NuxtLink to="/politica-privacidad" class="btn btn-light btn-lg rounded-pill px-4 border">
+              Política y privacidad
+            </NuxtLink>
           </div>
         </div>
 
@@ -79,6 +85,55 @@
 
     <PwaInstall class="mb-5" />
 
+    <section id="quienes-somos" class="about-section shadow-sm mb-5">
+      <div class="row g-4 align-items-start">
+        <div class="col-lg-4">
+          <p class="eyebrow mb-2">Quiénes somos</p>
+          <h2 class="fw-bold mb-3">Recuerdos seguros, historias vivas</h2>
+          <p class="about-highlight mb-0">
+            Remind fue creada para preservar los momentos más importantes de las personas.
+          </p>
+        </div>
+        <div class="col-lg-8">
+          <p>
+            <strong>Remind</strong> es una aplicación creada por el diseñador y desarrollador web
+            <strong>Yordy Olivares Durango</strong> y la diseñadora gráfica
+            <strong>Nuvis Guzmán Galeano</strong>, quienes unieron sus conocimientos en tecnología,
+            diseño e innovación para desarrollar una plataforma pensada para preservar los recuerdos
+            más importantes de las personas.
+          </p>
+          <p>
+            Este proyecto nació de una realidad muy común: muchas personas capturan fotografías y videos
+            de momentos especiales con sus familiares, amigos, viajes y celebraciones, pero con el paso
+            del tiempo se ven obligadas a eliminarlos por falta de espacio en sus dispositivos móviles.
+            En otros casos, la pérdida o el robo del teléfono, daños inesperados o cambios de equipo hacen
+            que esos recuerdos desaparezcan para siempre.
+          </p>
+          <p>
+            Con ese propósito nació <strong>Remind</strong>, una aplicación que permite almacenar fotografías
+            y videos de forma segura en la nube, brindando la tranquilidad de saber que esos momentos
+            permanecerán protegidos y disponibles cuando el usuario los necesite.
+          </p>
+          <p>
+            Además del almacenamiento privado, Remind ofrece un espacio donde las personas pueden compartir
+            sus recuerdos con una comunidad, descubrir experiencias de otros usuarios y organizar sus
+            fotografías en álbumes personalizados, manteniendo siempre el control sobre qué contenido desean
+            conservar de forma privada y cuál desean compartir.
+          </p>
+          <p>
+            Nuestra misión es convertir a Remind en mucho más que una galería de fotos. Queremos que sea un
+            lugar donde los recuerdos permanezcan vivos, donde cada imagen conserve su historia y donde las
+            personas puedan revivir los momentos que marcaron sus vidas, sin preocuparse por el espacio de
+            almacenamiento, la pérdida de un dispositivo o cualquier imprevisto.
+          </p>
+          <p class="mb-0">
+            En Remind creemos que cada fotografía cuenta una historia y que los recuerdos más valiosos
+            merecen un lugar seguro donde permanecer para siempre.
+          </p>
+        </div>
+      </div>
+    </section>
+
     <div class="row g-4 mb-5">
       <div v-for="feature in publicFeatures" :key="feature.title" class="col-md-4">
         <div class="feature-card shadow-sm h-100">
@@ -91,19 +146,35 @@
 
     <div class="reviews-section">
       <div class="text-center mb-4">
-        <p class="eyebrow mb-2">Confianza</p>
+        <p class="eyebrow mb-2">Remind</p>
         <h3 class="fw-bold">Reseñas de usuarios</h3>
-        <p class="text-muted mb-0">Opiniones que ayudan a nuevos usuarios a decidirse.</p>
+        <p class="text-muted mb-0">Opiniones usuarios activos.</p>
       </div>
 
-      <div class="row g-4">
-        <div v-for="review in visibleReviews" :key="review.id || review.text" class="col-md-4">
-          <div class="review-card shadow-sm h-100">
+      <div v-if="visibleReviews.length" class="reviews-carousel" :class="{ 'is-sliding': visibleReviews.length > 3 }">
+        <div class="reviews-track">
+        <div v-for="(review, index) in carouselReviews" :key="`${review.id}-${index}`" class="review-slide">
+          <NuxtLink
+            v-if="review.userId"
+            :to="`/biografia?id=${review.userId}`"
+            class="review-card review-link shadow-sm h-100"
+          >
+            <div class="review-stars">{{ '★'.repeat(review.rating) }}</div>
+            <p>“{{ review.text }}”</p>
+            <strong>{{ review.name }}</strong>
+            <span class="profile-link-label">Ver perfil</span>
+          </NuxtLink>
+          <div v-else class="review-card shadow-sm h-100">
             <div class="review-stars">{{ '★'.repeat(review.rating) }}</div>
             <p>“{{ review.text }}”</p>
             <strong>{{ review.name }}</strong>
           </div>
         </div>
+        </div>
+      </div>
+
+      <div v-else class="empty-reviews shadow-sm">
+        <p class="mb-0 text-muted">Aún no hay reseñas publicadas por usuarios.</p>
       </div>
     </div>
   </section>
@@ -269,22 +340,22 @@ const publicFeatures = [
   { icon: '🔒', title: 'Privado', text: 'El inicio no expone fotos públicas de otros usuarios.' }
 ]
 
-const fallbackReviews = [
-  { rating: 5, text: 'Me ayudó a tener mis fotos familiares ordenadas sin mezclar redes sociales.', name: 'Laura M.' },
-  { rating: 5, text: 'La galería por categorías hace que encuentre mis recuerdos muy rápido.', name: 'Andrés P.' },
-  { rating: 4, text: 'Simple, privado y perfecto para guardar fotos importantes.', name: 'Camila R.' }
-]
-
 const favoriteCount = computed(() => photos.value.filter(post => post.isFavorite).length)
 const visibleReviews = computed(() => {
-  if (!publicReviews.value.length) return fallbackReviews
-
   return publicReviews.value.map((review) => ({
     id: review.id,
+    userId: review.user?.id,
     rating: review.rating,
     text: review.text,
     name: `${review.user?.nombre || 'Usuario'} ${review.user?.apellido || ''}`.trim()
   }))
+})
+const carouselReviews = computed(() => {
+  if (visibleReviews.value.length > 3) {
+    return [...visibleReviews.value, ...visibleReviews.value]
+  }
+
+  return visibleReviews.value
 })
 
 const loadPublicReviews = async () => {
@@ -399,6 +470,7 @@ onUnmounted(() => {
 .gallery-page {
   background: #f5f7fb;
   min-height: 100vh;
+  overflow-x: hidden;
 }
 
 .hero-section {
@@ -489,6 +561,79 @@ onUnmounted(() => {
   padding: 1.25rem;
 }
 
+.reviews-carousel {
+  overflow: hidden;
+  padding: 0.4rem 0 0.9rem;
+}
+
+.reviews-track {
+  display: flex;
+  gap: 1rem;
+}
+
+.reviews-carousel:not(.is-sliding) .reviews-track {
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.review-slide {
+  flex: 1 1 280px;
+  max-width: 360px;
+}
+
+.reviews-carousel.is-sliding .reviews-track {
+  animation: reviews-scroll 44s linear infinite;
+  width: max-content;
+}
+
+.reviews-carousel.is-sliding:hover .reviews-track {
+  animation-play-state: paused;
+}
+
+.reviews-carousel.is-sliding .review-slide {
+  flex: 0 0 340px;
+  max-width: 340px;
+}
+
+.empty-reviews {
+  background: #fff;
+  border: 1px dashed rgba(13, 110, 253, 0.2);
+  border-radius: 1.25rem;
+  padding: 1.5rem;
+  text-align: center;
+}
+
+@keyframes reviews-scroll {
+  from {
+    transform: translateX(0);
+  }
+
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+.about-section {
+  background:
+    linear-gradient(135deg, rgba(13, 110, 253, 0.1), rgba(255, 255, 255, 0) 42%),
+    #fff;
+  border: 1px solid rgba(13, 110, 253, 0.1);
+  border-radius: 1.5rem;
+  scroll-margin-top: 2rem;
+  padding: 2rem;
+}
+
+.about-section p {
+  color: #495057;
+  line-height: 1.75;
+}
+
+.about-highlight {
+  color: #0d6efd;
+  font-size: 1.1rem;
+  font-weight: 700;
+}
+
 .feature-card span {
   align-items: center;
   background: #edf4ff;
@@ -507,6 +652,26 @@ onUnmounted(() => {
   font-weight: 800;
   letter-spacing: 0.08em;
   margin-bottom: 0.75rem;
+}
+
+.review-link {
+  color: inherit;
+  display: block;
+  text-decoration: none;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.review-link:hover {
+  box-shadow: 0 14px 30px rgba(13, 110, 253, 0.14) !important;
+  transform: translateY(-2px);
+}
+
+.profile-link-label {
+  color: #0d6efd;
+  display: inline-block;
+  font-size: 0.85rem;
+  font-weight: 700;
+  margin-top: 0.85rem;
 }
 
 .stats-panel {
@@ -746,6 +911,55 @@ onUnmounted(() => {
 }
 
 @media (max-width: 768px) {
+  .hero-section .container {
+    padding-bottom: 2rem !important;
+    padding-top: 2rem !important;
+  }
+
+  .hero-section .display-5 {
+    font-size: 2rem;
+    line-height: 1.08;
+  }
+
+  .hero-section .lead {
+    font-size: 1rem;
+  }
+
+  .hero-section .btn-lg {
+    flex: 1 1 100%;
+    font-size: 0.95rem;
+    padding-bottom: 0.75rem;
+    padding-top: 0.75rem;
+  }
+
+  .public-slider {
+    border-radius: 1rem;
+    min-height: 260px;
+  }
+
+  .public-slider img {
+    height: 300px;
+  }
+
+  .subscription-card {
+    align-items: stretch;
+    flex-direction: column;
+    margin-bottom: 1.5rem !important;
+  }
+
+  .subscription-card .btn {
+    width: 100%;
+  }
+
+  .about-section {
+    padding: 1.35rem;
+  }
+
+  .reviews-carousel.is-sliding .review-slide {
+    flex-basis: 82vw;
+    max-width: 82vw;
+  }
+
   .toolbar {
     align-items: stretch;
     flex-direction: column;
@@ -757,6 +971,42 @@ onUnmounted(() => {
 
   .masonry-gallery {
     column-count: 1;
+  }
+
+  .album-strip {
+    display: flex;
+    gap: 0.75rem;
+    margin-left: -0.25rem;
+    margin-right: -0.25rem;
+    overflow-x: auto;
+    padding: 0.25rem 0.25rem 0.7rem;
+    scroll-snap-type: x mandatory;
+  }
+
+  .album-card {
+    flex: 0 0 145px;
+    scroll-snap-align: start;
+  }
+
+  .photo-open img {
+    min-height: 260px;
+  }
+
+  .lightbox {
+    align-items: flex-end;
+    padding: 0.65rem;
+  }
+
+  .lightbox-dialog {
+    border-radius: 1rem 1rem 0.5rem 0.5rem;
+    max-height: 88vh;
+  }
+
+  .lightbox-close {
+    height: 2.25rem;
+    right: 0.75rem;
+    top: 0.75rem;
+    width: 2.25rem;
   }
 
   .stats-panel {
