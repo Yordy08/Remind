@@ -126,7 +126,7 @@
         <div class="card-body">
           <h5 class="card-title mb-3">Usuarios</h5>
           <div class="table-responsive">
-            <table class="table align-middle">
+            <table class="table admin-users-table align-middle">
               <thead>
                 <tr>
                   <th>Usuario</th>
@@ -539,6 +539,22 @@ onUnmounted(() => {
 .admin-page {
   background: #f6f8fb;
   min-height: 100vh;
+  overflow-x: hidden;
+}
+
+.admin-page .container,
+.admin-page .card,
+.admin-page .card-body {
+  max-width: 100%;
+  min-width: 0;
+}
+
+.admin-page p,
+.admin-page small,
+.admin-page strong,
+.admin-page td,
+.admin-page span {
+  overflow-wrap: anywhere;
 }
 
 .eyebrow {
@@ -673,11 +689,40 @@ onUnmounted(() => {
 
 @media (max-width: 768px) {
   .admin-page .container {
+    max-width: 100%;
+    overflow-x: hidden;
+    padding-left: 0.85rem;
+    padding-right: 0.85rem;
     padding-top: 1.5rem !important;
+  }
+
+  .admin-page h1 {
+    font-size: 1.8rem;
+  }
+
+  .admin-page .card {
+    border-radius: 1rem;
+    overflow: hidden;
+  }
+
+  .admin-page .card-body {
+    padding: 1rem;
   }
 
   .stat-card {
     padding: 1rem;
+  }
+
+  .stat-card span {
+    font-size: 1.65rem;
+  }
+
+  .cloudinary-progress {
+    height: 1.15rem;
+  }
+
+  .cloudinary-progress .progress-bar {
+    font-size: 0.7rem;
   }
 
   .cloudinary-metrics {
@@ -685,12 +730,66 @@ onUnmounted(() => {
   }
 
   .table-responsive {
-    border: 1px solid #edf0f3;
-    border-radius: 1rem;
+    border: 0;
+    overflow: visible;
   }
 
-  .table {
-    min-width: 860px;
+  .admin-users-table,
+  .admin-users-table tbody,
+  .admin-users-table tr,
+  .admin-users-table td {
+    display: block;
+    width: 100%;
+  }
+
+  .admin-users-table {
+    border-collapse: separate;
+    border-spacing: 0;
+    margin-bottom: 0;
+  }
+
+  .admin-users-table thead {
+    display: none;
+  }
+
+  .admin-users-table tr {
+    background: #fff;
+    border: 1px solid #edf0f3;
+    border-radius: 1rem;
+    box-shadow: 0 8px 22px rgba(15, 23, 42, 0.05);
+    margin-bottom: 0.85rem;
+    overflow: hidden;
+    padding: 0.45rem 0;
+  }
+
+  .admin-users-table td {
+    border: 0;
+    padding: 0.45rem 0.85rem;
+    text-align: left !important;
+  }
+
+  .admin-users-table td::before {
+    color: #6c757d;
+    content: attr(data-label);
+    display: block;
+    font-size: 0.72rem;
+    font-weight: 800;
+    letter-spacing: 0.06em;
+    margin-bottom: 0.15rem;
+    text-transform: uppercase;
+  }
+
+  .admin-users-table td:nth-child(1)::before { content: 'Usuario'; }
+  .admin-users-table td:nth-child(2)::before { content: 'Rol'; }
+  .admin-users-table td:nth-child(3)::before { content: 'Estado'; }
+  .admin-users-table td:nth-child(4)::before { content: 'Suscripción'; }
+  .admin-users-table td:nth-child(5)::before { content: 'Pago'; }
+  .admin-users-table td:nth-child(6)::before { content: 'Fotos'; }
+  .admin-users-table td:nth-child(7)::before { content: 'Reseña pendiente'; }
+  .admin-users-table td:nth-child(8)::before { content: 'Acciones'; }
+
+  .admin-users-table .btn-group {
+    width: 100%;
   }
 
   .btn-group.flex-wrap {
@@ -698,9 +797,30 @@ onUnmounted(() => {
     gap: 0.35rem;
   }
 
+  .btn-group.flex-wrap .btn {
+    border-radius: 0.65rem !important;
+    width: 100%;
+  }
+
+  .notification-row > .d-flex,
+  .review-row > .d-flex,
+  .complaint-row > div {
+    align-items: flex-start !important;
+    flex-direction: column;
+  }
+
+  .complaint-row .d-flex.align-items-start {
+    width: 100%;
+  }
+
+  .complaint-row .d-flex.align-items-start .btn {
+    width: 100%;
+  }
+
   .notification-modal,
   .proof-modal {
     border-radius: 1rem;
+    max-width: calc(100vw - 1.5rem);
     max-height: 88vh;
     overflow-y: auto;
     padding: 1rem;
