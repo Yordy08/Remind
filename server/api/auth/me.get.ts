@@ -1,5 +1,4 @@
 import { getUserFromToken } from '../../utils/auth'
-import prisma from '../../utils/prisma'
 
 export default defineEventHandler(async (event) => {
   const tokenUser = getUserFromToken(event)
@@ -10,6 +9,8 @@ export default defineEventHandler(async (event) => {
       statusMessage: 'No autenticado'
     })
   }
+
+  const { default: prisma } = await import('../../utils/prisma')
 
   const user = await prisma.user.findUnique({
     where: { id: tokenUser.id }

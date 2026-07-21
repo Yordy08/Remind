@@ -1,4 +1,3 @@
-import prisma from '../../utils/prisma'
 import bcrypt from 'bcryptjs'
 import jwt from 'jsonwebtoken'
 import { getJwtSecret } from '../../utils/auth'
@@ -15,6 +14,8 @@ export default defineEventHandler(async (event) => {
       statusMessage: 'Campos obligatorios'
     })
   }
+
+  const { default: prisma } = await import('../../utils/prisma')
 
   // 🔎 buscar usuario
   const user = await prisma.user.findUnique({
