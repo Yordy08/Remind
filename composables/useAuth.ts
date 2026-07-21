@@ -5,8 +5,8 @@ export const useAuth = () => {
   const checkAuth = async () => {
     try {
       const res = await $fetch('/api/auth/me')
-      isLoggedIn.value = true
-      user.value = res.user
+      isLoggedIn.value = Boolean(res.authenticated && res.user)
+      user.value = res.user || null
     } catch {
       isLoggedIn.value = false
       user.value = null

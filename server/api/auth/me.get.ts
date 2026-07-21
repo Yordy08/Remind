@@ -4,10 +4,11 @@ export default defineEventHandler(async (event) => {
   const tokenUser = getUserFromToken(event)
 
   if (!tokenUser) {
-    throw createError({
-      statusCode: 401,
-      statusMessage: 'No autenticado'
-    })
+    return {
+      success: true,
+      authenticated: false,
+      user: null
+    }
   }
 
   const { default: prisma } = await import('../../utils/prisma')
@@ -32,6 +33,7 @@ export default defineEventHandler(async (event) => {
 
   return {
     success: true,
+    authenticated: true,
     user: {
       id: user.id,
       email: user.email,
