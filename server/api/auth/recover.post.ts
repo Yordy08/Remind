@@ -15,6 +15,7 @@ const generateTemporaryPassword = () => {
 export default defineEventHandler(async (event) => {
   const body = await readBody(event)
   const identifier = body?.identifier?.trim()
+  const normalizedIdentifier = identifier?.toLowerCase()
 
   if (!identifier) {
     throw createError({
@@ -23,14 +24,29 @@ export default defineEventHandler(async (event) => {
     })
   }
 
-  const user = await prisma.user.findFirst({
+  let user = await prisma.user.findFirst({
     where: {
       OR: [
-        { email: identifier },
-        { nombre: { equals: identifier, mode: 'insensitive' } }
+        { email: normalizedIdentifier },
+        { nombre: { equals: identifier, mode: 'insensitive' } },
+        { apellido: { equals: identifier, mode: 'insensitive' } }
       ]
     }
   })
+
+  if (!user && identifier.includes(' ')) {
+    const [nombre, ...apellidoParts] = identifier.split(/\s+/)
+    const apellido = apellidoParts.join(' ')
+
+    if (nombre && apellido) {
+      user = await prisma.user.findFirst({
+        where: {
+          nombre: { equals: nombre, mode: 'insensitive' },
+          apellido: { equals: apellido, mode: 'insensitive' }
+        }
+      })
+    }
+  }
 
   if (!user) {
     throw createError({
