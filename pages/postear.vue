@@ -3,6 +3,12 @@
 
 <div class="post-card card p-4 shadow">
 
+<div class="text-center mb-4">
+  <p class="eyebrow mb-2">Nueva carga</p>
+  <h1 class="h3 fw-bold mb-2">Sube tus recuerdos</h1>
+  <p class="text-muted mb-0">Selecciona tus fotos. Remind las organizará en tu Galería automáticamente.</p>
+</div>
+
 <!-- INPUT IMÁGENES MÚLTIPLES -->
 <input
   type="file"
@@ -43,32 +49,8 @@
   </div>
 </div>
 
-<!-- TEXTO -->
-<textarea
-  v-model="descripcion"
-  class="form-control mb-3"
-  placeholder="Descripción"
-></textarea>
-
-<!-- CATEGORÍA -->
-<label class="form-label fw-bold">Categoría del álbum</label>
-<select v-model="categoria" class="form-select mb-3">
-  <option v-for="item in categorias" :key="item" :value="item">
-    {{ item }}
-  </option>
-</select>
-
-<!-- SWITCH PRIVADO / PÚBLICO -->
-<div class="form-check form-switch mb-3">
-  <input
-    class="form-check-input"
-    type="checkbox"
-    id="privacidadSwitch"
-    v-model="esPrivada"
-  >
-  <label class="form-check-label" for="privacidadSwitch">
-    {{ esPrivada ? '🔒 Privada' : '🌎 Pública' }}
-  </label>
+<div class="upload-note mb-3">
+  Las fotos se guardarán privadas en el álbum <strong>Recientes</strong>. Luego podrás moverlas a otros álbumes desde la Galería.
 </div>
 
 <!-- BOTÓN -->
@@ -78,7 +60,7 @@
   :disabled="loading || !files.length"
 >
   <span v-if="loading">Subiendo...</span>
-  <span v-else>Publicar</span>
+  <span v-else>Guardar en Galería</span>
 </button>
 
 <p class="mt-3" :class="mensajeError ? 'text-danger' : 'text-success'">{{ mensaje }}</p>
@@ -93,14 +75,9 @@ const MAX_IMAGES = 10
 
 const files = ref([])
 const previews = ref([])
-const descripcion = ref('')
-const categoria = ref('General')
-const esPrivada = ref(false)
 const mensaje = ref('')
 const mensajeError = ref(false)
 const loading = ref(false)
-
-const categorias = ['General', 'Familia', 'Viajes', 'Eventos', 'Naturaleza', 'Trabajo', 'Favoritas']
 
 // seleccionar múltiples imágenes
 const onFilesChange = (e) => {
@@ -162,9 +139,7 @@ const subirPost = async () => {
       formData.append('file', f)
     }
 
-    formData.append('descripcion', descripcion.value)
-    formData.append('categoria', categoria.value)
-    formData.append('estado', esPrivada.value ? 'PRIVADO' : 'PUBLICO')
+    formData.append('estado', 'PRIVADO')
     formData.append('taggedUserIds', '[]')
 
     const res = await $fetch('/api/posts/create', {
@@ -183,9 +158,7 @@ const subirPost = async () => {
 
       files.value = []
       previews.value = []
-      descripcion.value = ''
-      categoria.value = 'General'
-      esPrivada.value = false
+      await navigateTo('/galeria')
     }
 
   } catch (err) {
@@ -198,6 +171,22 @@ const subirPost = async () => {
 </script>
 
 <style scoped>
+.eyebrow {
+  color: #0d6efd;
+  font-size: 0.75rem;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.upload-note {
+  background: #f8fbff;
+  border: 1px solid #e5efff;
+  border-radius: 1rem;
+  color: #495057;
+  padding: 1rem;
+}
+
 .preview-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));

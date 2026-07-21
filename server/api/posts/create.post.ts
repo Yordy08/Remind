@@ -17,9 +17,8 @@ export default defineEventHandler(async (event) => {
 
   // 🔥 Soportar múltiples archivos
   const files = form?.filter(f => f.name === 'file') || []
-  const descripcion = form?.find(f => f.name === 'descripcion')?.data.toString()
-  const categoria = form?.find(f => f.name === 'categoria')?.data.toString() || 'General'
-  const estado = form?.find(f => f.name === 'estado')?.data.toString() || 'PUBLICO'
+  const categoria = form?.find(f => f.name === 'album')?.data.toString() || 'Recientes'
+  const estado = form?.find(f => f.name === 'estado')?.data.toString() || 'PRIVADO'
   const taggedUserIdsRaw = form?.find(f => f.name === 'taggedUserIds')?.data.toString() || '[]'
 
   let taggedUserIds: string[] = []
@@ -64,31 +63,34 @@ export default defineEventHandler(async (event) => {
 
     const imageUrls = await Promise.all(uploadPromises)
 
-    // 🔥 2. Guardar en MongoDB con array de imágenes + imagen legacy (primera foto)
-    const post = await prisma.post.create({
-      data: {
-        descripcion: descripcion || '',
-        categoria,
-        imagenes: imageUrls,
-        imagen: imageUrls[0] || '', // LEGACY: guardar primera imagen para compatibilidad
-        estado,
-        userId: user.id
-      }
-    })
+    // Guardar cada imagen como foto independiente para moverla, marcarla y compartirla individualmente.
+    const createdPosts = await Promise.all(imageUrls.map((imageUrl) => {
+      return prisma.post.create({
+        data: {
+          descripcion: '',
+          categoria,
+          imagenes: [imageUrl],
+          imagen: imageUrl,
+          estado,
+          userId: user.id
+        }
+      })
+    }))
 
     // 🔥 3. Crear etiquetas de usuarios
     for (const userId of taggedUserIds) {
       await prisma.userTag.create({
         data: {
           userId,
-          postId: post.id
+          postId: createdPosts[0].id
         }
       })
     }
 
     return {
       success: true,
-      post
+      posts: createdPosts,
+      post: createdPosts[0]
     }
 
   } catch (error: any) {

@@ -187,6 +187,7 @@
           <div v-if="!notifications.length" class="text-muted">No hay notificaciones para el administrador.</div>
           <div v-for="notification in notifications" :key="notification.id" class="notification-row">
             <div class="d-flex justify-content-between gap-3">
+              <img v-if="notification.imageUrl" :src="notification.imageUrl" alt="Imagen de notificación" class="admin-notification-thumb">
               <div>
                 <strong>{{ notification.title }}</strong>
                 <p class="mb-1 text-muted">{{ notification.message }}</p>
@@ -254,6 +255,12 @@
       <p class="text-muted small">Para {{ notificationUser.nombre }} {{ notificationUser.apellido }}</p>
       <input v-model="notificationTitle" class="form-control mb-2" placeholder="Título">
       <textarea v-model="notificationMessage" class="form-control mb-3" rows="4" placeholder="Mensaje"></textarea>
+      <label class="form-label fw-bold">Imagen opcional</label>
+      <input class="form-control mb-2" type="file" accept="image/*" @change="onNotificationImageChange">
+      <div v-if="notificationImagePreview" class="notification-image-preview mb-3">
+        <img :src="notificationImagePreview" alt="Vista previa">
+        <button class="btn btn-sm btn-light" type="button" @click="clearNotificationImage">Quitar imagen</button>
+      </div>
       <div class="d-flex gap-2 justify-content-end">
         <button class="btn btn-light" @click="notificationUser = null">Cancelar</button>
         <button class="btn btn-primary" :disabled="sendingNotification" @click="sendNotification">Enviar</button>
@@ -328,6 +335,8 @@ const paymentProofUser = ref(null)
 const selectedComplaint = ref(null)
 const notificationTitle = ref('')
 const notificationMessage = ref('')
+const notificationImage = ref(null)
+const notificationImagePreview = ref('')
 const complaintResponse = ref('')
 const complaintStatus = ref('ANSWERED')
 const sendingNotification = ref(false)
@@ -409,6 +418,22 @@ const openNotification = (item) => {
   notificationUser.value = item
   notificationTitle.value = ''
   notificationMessage.value = ''
+  clearNotificationImage()
+}
+
+const onNotificationImageChange = (event) => {
+  const file = event.target.files?.[0]
+  clearNotificationImage()
+
+  if (!file) return
+  notificationImage.value = file
+  notificationImagePreview.value = URL.createObjectURL(file)
+}
+
+const clearNotificationImage = () => {
+  if (notificationImagePreview.value) URL.revokeObjectURL(notificationImagePreview.value)
+  notificationImage.value = null
+  notificationImagePreview.value = ''
 }
 
 const openPaymentProof = (item) => {
@@ -428,15 +453,19 @@ const sendNotification = async () => {
   sendingNotification.value = true
 
   try {
+    const formData = new FormData()
+    formData.append('userId', notificationUser.value.id)
+    formData.append('title', notificationTitle.value)
+    formData.append('message', notificationMessage.value)
+    if (notificationImage.value) formData.append('image', notificationImage.value)
+
     await $fetch('/api/admin/notifications', {
       method: 'POST',
-      body: {
-        userId: notificationUser.value.id,
-        title: notificationTitle.value,
-        message: notificationMessage.value
-      }
+      body: formData
     })
     notificationUser.value = null
+    clearNotificationImage()
+    await loadAdminData()
   } catch (err) {
     alert(err?.data?.statusMessage || 'No se pudo enviar la notificación')
   } finally {
@@ -625,6 +654,30 @@ onUnmounted(() => {
 .notification-row {
   border-top: 1px solid #edf0f3;
   padding: 1rem 0;
+}
+
+.admin-notification-thumb {
+  aspect-ratio: 1;
+  border-radius: 0.85rem;
+  height: 64px;
+  object-fit: cover;
+  width: 64px;
+}
+
+.notification-image-preview {
+  background: #f8fbff;
+  border: 1px solid #e5efff;
+  border-radius: 1rem;
+  display: grid;
+  gap: 0.75rem;
+  padding: 0.75rem;
+}
+
+.notification-image-preview img {
+  border-radius: 0.85rem;
+  max-height: 220px;
+  object-fit: cover;
+  width: 100%;
 }
 
 .complaint-row {

@@ -82,7 +82,10 @@ export default defineEventHandler(async (event) => {
       data: {
         userId: admin.id,
         title: 'Nueva suscripción por aprobar',
-        message: `${user.nombre} ${user.apellido} envió una captura de pago. Revisa el comprobante desde el dashboard y activa manualmente la cuenta.`
+        message: `${user.nombre} ${user.apellido} envió una captura de pago. Revisa el comprobante y aprueba la cuenta desde esta notificación.`,
+        imageUrl: user.paymentProofUrl,
+        actionType: 'SUBSCRIPTION_APPROVAL',
+        targetUserId: user.id
       }
     })))
 

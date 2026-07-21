@@ -31,6 +31,7 @@ self.addEventListener('message', (event) => {
     body: event.data.body || 'Tienes una nueva notificación.',
     icon: '/app-icon.svg',
     badge: '/app-icon.svg',
+    image: event.data.image || undefined,
     data: {
       url: event.data.url || '/'
     }

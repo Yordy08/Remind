@@ -184,119 +184,60 @@
 
     <div class="toolbar shadow-sm mb-4">
       <div>
-        <h5 class="mb-1">Álbumes</h5>
-        <p class="text-muted small mb-0">Filtra tu biblioteca por categoría o favoritos.</p>
+        <h5 class="mb-1">Tus álbumes</h5>
+        <p class="text-muted small mb-0">Todas tus carpetas organizadas en un solo lugar.</p>
       </div>
       <input
         v-model="search"
         type="search"
         class="form-control search-input"
-        placeholder="Buscar por descripción o categoría"
+        placeholder="Buscar álbum"
       >
-    </div>
-
-    <div class="album-strip mb-4">
-      <button
-        class="album-card"
-        :class="activeCategory === 'Todos' ? 'active' : ''"
-        @click="activeCategory = 'Todos'"
-      >
-        <span class="album-count">{{ photos.length }}</span>
-        <strong>Todos</strong>
-      </button>
-
-      <button
-        class="album-card favorite-card"
-        :class="activeCategory === 'Favoritos' ? 'active' : ''"
-        @click="activeCategory = 'Favoritos'"
-      >
-        <span class="album-count">{{ favoriteCount }}</span>
-        <strong>Favoritos</strong>
-      </button>
-
-      <button
-        v-for="category in categories"
-        :key="category"
-        class="album-card"
-        :class="activeCategory === category ? 'active' : ''"
-        @click="activeCategory = category"
-      >
-        <span class="album-count">{{ countByCategory(category) }}</span>
-        <strong>{{ category }}</strong>
-      </button>
     </div>
 
     <div v-if="loading" class="text-center py-5">
       <div class="spinner-border text-primary" role="status">
         <span class="visually-hidden">Cargando...</span>
       </div>
-      <p class="text-muted mt-2">Cargando galería...</p>
+      <p class="text-muted mt-2">Cargando álbumes...</p>
     </div>
 
-    <div v-else-if="!photos.length" class="empty-state shadow-sm">
+    <div v-else-if="!galleryPhotos.length" class="empty-state shadow-sm">
       <h4>Aún no tienes fotos guardadas</h4>
       <p class="text-muted">Sube tus primeras imágenes y empieza a construir tus álbumes.</p>
       <NuxtLink to="/postear" class="btn btn-primary rounded-pill px-4">Subir fotos</NuxtLink>
     </div>
 
-    <div v-else-if="!filteredPhotos.length" class="empty-state shadow-sm">
-      <h4>No hay resultados</h4>
-      <p class="text-muted mb-0">Prueba con otra búsqueda o cambia el álbum seleccionado.</p>
+    <div v-else-if="!visibleAlbums.length" class="empty-state shadow-sm">
+      <h4>No hay álbumes con ese nombre</h4>
+      <p class="text-muted mb-0">Prueba con otra búsqueda.</p>
     </div>
 
-    <div v-else class="masonry-gallery">
-      <article
-        v-for="post in filteredPhotos"
-        :key="post.id"
-        class="photo-card shadow-sm"
+    <div v-else class="album-grid">
+      <button
+        v-for="album in visibleAlbums"
+        :key="album.id"
+        class="album-card"
+        type="button"
+        @click="openAlbum(album.name)"
       >
-        <button class="photo-open" @click="openPhoto(post)">
-          <img :src="optimizeImage(post.imagenes[0])" :alt="post.descripcion || post.categoria" loading="lazy">
-          <span v-if="post.imagenes.length > 1" class="photo-badge">{{ post.imagenes.length }} fotos</span>
-        </button>
-
-        <div class="photo-body">
-          <div class="d-flex justify-content-between gap-2 align-items-start">
-            <div>
-              <span class="category-pill">{{ post.categoria }}</span>
-              <p class="photo-description mb-1">{{ post.descripcion || 'Sin descripción' }}</p>
-              <small class="text-muted">{{ formatDate(post.createdAt) }}</small>
-            </div>
-            <button
-              class="favorite-btn"
-              :class="post.isFavorite ? 'active' : ''"
-              :disabled="favoriteLoading[post.id]"
-              @click="toggleFavorite(post)"
-              title="Marcar favorito"
-            >
-              ★
-            </button>
-          </div>
-
-          <div v-if="post.imagenes.length > 1" class="thumb-row mt-3">
-            <img
-              v-for="image in post.imagenes.slice(0, 4)"
-              :key="image"
-              :src="optimizeThumb(image)"
-              loading="lazy"
-            >
-          </div>
+        <div class="album-stack">
+          <img
+            v-for="(url, index) in getAlbumPreviewUrls(album.name)"
+            :key="`${album.name}-${url}-${index}`"
+            :src="optimizeImage(url, 260)"
+            :alt="album.name"
+            :style="{ '--stack-index': index }"
+          >
+          <div v-if="!getAlbumPreviewUrls(album.name).length" class="album-stack-empty">R</div>
         </div>
-      </article>
+        <div class="album-card-body">
+          <span>{{ album.count }}</span>
+          <strong>{{ album.name }}</strong>
+        </div>
+      </button>
     </div>
   </section>
-
-  <div v-if="selectedPost" class="lightbox" @click.self="selectedPost = null">
-    <div class="lightbox-dialog">
-      <button class="lightbox-close" @click="selectedPost = null">×</button>
-      <ImageCarousel v-if="selectedPost.imagenes.length > 1" :images="selectedPost.imagenes" />
-      <img v-else :src="selectedPost.imagenes[0]" class="lightbox-image">
-      <div class="lightbox-info">
-        <span class="category-pill">{{ selectedPost.categoria }}</span>
-        <p class="mb-0 mt-2">{{ selectedPost.descripcion || 'Sin descripción' }}</p>
-      </div>
-    </div>
-  </div>
 
 </div>
 </template>
@@ -306,14 +247,11 @@ const { isLoggedIn, checkAuth } = useAuth()
 
 const loading = ref(false)
 const photos = ref([])
-const categories = ref([])
+const albums = ref([])
 const publicReviews = ref([])
 const stats = ref({ albums: 0, posts: 0, images: 0, favorites: 0 })
-const activeCategory = ref('Todos')
 const activeSlide = ref(0)
 const search = ref('')
-const selectedPost = ref(null)
-const favoriteLoading = ref({})
 let slideInterval = null
 
 const heroSlides = [
@@ -340,7 +278,29 @@ const publicFeatures = [
   { icon: '🔒', title: 'Privado', text: 'El inicio no expone fotos públicas de otros usuarios.' }
 ]
 
-const favoriteCount = computed(() => photos.value.filter(post => post.isFavorite).length)
+const galleryPhotos = computed(() => {
+  return photos.value.flatMap((post) => {
+    const images = post.imagenes?.length ? post.imagenes : (post.imagen ? [post.imagen] : [])
+    return images.map((url, index) => ({
+      key: `${post.id}-${index}`,
+      postId: post.id,
+      url,
+      album: post.categoria || 'Recientes',
+      createdAt: post.createdAt,
+      isFavorite: post.isFavorite
+    }))
+  })
+})
+
+const visibleAlbums = computed(() => {
+  const query = search.value.trim().toLowerCase()
+  const baseAlbums = albums.value.length ? albums.value : [{ id: 'Recientes', name: 'Recientes', count: 0, automatic: true }]
+
+  if (!query) return baseAlbums
+
+  return baseAlbums.filter(album => album.name.toLowerCase().includes(query))
+})
+
 const visibleReviews = computed(() => {
   return publicReviews.value.map((review) => ({
     id: review.id,
@@ -367,21 +327,6 @@ const loadPublicReviews = async () => {
   }
 }
 
-const filteredPhotos = computed(() => {
-  const query = search.value.trim().toLowerCase()
-
-  return photos.value.filter((post) => {
-    const matchesCategory = activeCategory.value === 'Todos'
-      || (activeCategory.value === 'Favoritos' && post.isFavorite)
-      || post.categoria === activeCategory.value
-    const matchesSearch = !query
-      || post.descripcion?.toLowerCase().includes(query)
-      || post.categoria?.toLowerCase().includes(query)
-
-    return matchesCategory && matchesSearch
-  })
-})
-
 const loadGallery = async () => {
   if (!isLoggedIn.value) return
 
@@ -390,7 +335,7 @@ const loadGallery = async () => {
   try {
     const res = await $fetch('/api/photos/gallery')
     photos.value = res.photos || []
-    categories.value = res.categories || []
+    albums.value = res.albums || []
     stats.value = res.stats || { albums: 0, posts: 0, images: 0, favorites: 0 }
   } catch (err) {
     if (err?.statusCode === 401) return
@@ -400,52 +345,22 @@ const loadGallery = async () => {
   }
 }
 
-const countByCategory = (category) => {
-  return photos.value.filter(post => post.categoria === category).length
+const openAlbum = (album) => {
+  return navigateTo(`/album/${encodeURIComponent(album)}`)
 }
 
-const toggleFavorite = async (post) => {
-  favoriteLoading.value[post.id] = true
+const getAlbumPreviewUrls = (albumName) => {
+  const source = albumName === 'Favoritos'
+    ? galleryPhotos.value.filter(photo => photo.isFavorite)
+    : galleryPhotos.value.filter(photo => photo.album === albumName)
 
-  try {
-    const res = await $fetch('/api/photos/favorite', {
-      method: 'POST',
-      body: { postId: post.id }
-    })
-
-    post.isFavorite = res.favorite
-    stats.value.favorites = favoriteCount.value
-  } catch (err) {
-    alert(err?.data?.statusMessage || 'No se pudo actualizar favorito')
-  } finally {
-    favoriteLoading.value[post.id] = false
-  }
+  return source.slice(0, 3).map(photo => photo.url)
 }
 
-const openPhoto = (post) => {
-  selectedPost.value = post
-}
-
-const formatDate = (date) => {
-  return new Date(date).toLocaleDateString('es-ES', {
-    year: 'numeric',
-    month: 'short',
-    day: 'numeric'
-  })
-}
-
-const optimizeImage = (url) => {
+const optimizeImage = (url, width = 900) => {
   if (typeof url !== 'string') return url
   if (url.includes('res.cloudinary.com') && url.includes('/upload/')) {
-    return url.replace('/upload/', '/upload/w_900,q_auto,f_auto/')
-  }
-  return url
-}
-
-const optimizeThumb = (url) => {
-  if (typeof url !== 'string') return url
-  if (url.includes('res.cloudinary.com') && url.includes('/upload/')) {
-    return url.replace('/upload/', '/upload/w_160,h_160,c_fill,q_auto,f_auto/')
+    return url.replace('/upload/', `/upload/w_${width},q_auto,f_auto/`)
   }
   return url
 }
@@ -728,186 +643,86 @@ onUnmounted(() => {
   padding: 3rem 1.5rem;
 }
 
-.album-strip {
+.album-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(145px, 1fr));
-  gap: 0.85rem;
+  gap: 1.5rem;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  padding: 1rem 0 1.35rem;
 }
 
 .album-card {
-  background: #fff;
-  border: 1px solid rgba(13, 110, 253, 0.1);
-  border-radius: 1rem;
+  background: transparent;
+  border: 0;
   color: #1f2937;
-  padding: 1rem;
-  text-align: left;
-  transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+  padding: 0;
+  position: relative;
+  text-align: center;
+  transition: transform 0.25s ease;
 }
 
-.album-card:hover,
-.album-card.active {
-  border-color: #0d6efd;
-  box-shadow: 0 12px 28px rgba(13, 110, 253, 0.14);
-  transform: translateY(-2px);
+.album-card:hover {
+  transform: translateY(-9px) scale(1.02);
 }
 
-.favorite-card.active,
-.favorite-card:hover {
-  border-color: #ffc107;
-  box-shadow: 0 12px 28px rgba(255, 193, 7, 0.18);
+.album-stack {
+  height: 178px;
+  margin-bottom: 0.7rem;
+  position: relative;
 }
 
-.album-count {
+.album-stack img,
+.album-stack-empty {
+  aspect-ratio: 4 / 3;
+  border-radius: 1.25rem;
+  box-shadow: 0 24px 42px rgba(15, 23, 42, 0.2);
+  height: 135px;
+  left: 50%;
+  object-fit: cover;
+  position: absolute;
+  top: calc(14px + (var(--stack-index, 1) * 10px));
+  transform: translateX(-50%) rotate(calc((var(--stack-index, 1) - 1) * 9deg));
+  transition: transform 0.32s ease, top 0.32s ease;
+  width: 178px;
+}
+
+.album-card:hover .album-stack img {
+  top: calc(6px + (var(--stack-index, 1) * 10px));
+  transform: translateX(-50%) rotate(calc((var(--stack-index, 1) - 1) * 13deg)) scale(1.06);
+}
+
+.album-stack img:nth-child(1) { z-index: 3; }
+.album-stack img:nth-child(2) { filter: saturate(0.95); opacity: 0.9; z-index: 2; }
+.album-stack img:nth-child(3) { filter: saturate(0.9); opacity: 0.78; z-index: 1; }
+
+.album-stack-empty {
+  align-items: center;
+  background: linear-gradient(135deg, #0d6efd, #6ea8fe);
+  color: #fff;
+  display: flex;
+  font-size: 2rem;
+  font-weight: 900;
+  justify-content: center;
+  z-index: 1;
+}
+
+.album-card-body {
+  align-items: center;
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.album-card-body span {
   color: #0d6efd;
-  display: block;
-  font-size: 1.5rem;
+  font-size: 0.9rem;
   font-weight: 800;
 }
 
-.masonry-gallery {
-  column-count: 3;
-  column-gap: 1.25rem;
-}
-
-.photo-card {
-  background: #fff;
-  border-radius: 1.25rem;
-  break-inside: avoid;
-  margin: 0 0 1.25rem;
+.album-card-body strong {
+  max-width: 100%;
   overflow: hidden;
-}
-
-.photo-open {
-  background: #e9ecef;
-  border: 0;
-  cursor: zoom-in;
-  display: block;
-  padding: 0;
-  position: relative;
-  width: 100%;
-}
-
-.photo-open img {
-  display: block;
-  min-height: 220px;
-  object-fit: cover;
-  width: 100%;
-}
-
-.photo-badge {
-  background: rgba(0, 0, 0, 0.68);
-  border-radius: 999px;
-  bottom: 0.8rem;
-  color: #fff;
-  font-size: 0.75rem;
-  padding: 0.35rem 0.7rem;
-  position: absolute;
-  right: 0.8rem;
-}
-
-.photo-body {
-  padding: 1rem;
-}
-
-.category-pill {
-  background: #edf4ff;
-  border-radius: 999px;
-  color: #0d6efd;
-  display: inline-block;
-  font-size: 0.72rem;
-  font-weight: 700;
-  margin-bottom: 0.55rem;
-  padding: 0.25rem 0.65rem;
-}
-
-.photo-description {
-  color: #212529;
-  font-weight: 600;
-}
-
-.favorite-btn {
-  align-items: center;
-  background: #f8f9fa;
-  border: 1px solid #e9ecef;
-  border-radius: 50%;
-  color: #adb5bd;
-  display: inline-flex;
-  flex-shrink: 0;
-  font-size: 1.1rem;
-  height: 2.25rem;
-  justify-content: center;
-  width: 2.25rem;
-}
-
-.favorite-btn.active {
-  background: #fff3cd;
-  border-color: #ffc107;
-  color: #b58100;
-}
-
-.thumb-row {
-  display: grid;
-  gap: 0.35rem;
-  grid-template-columns: repeat(4, 1fr);
-}
-
-.thumb-row img {
-  aspect-ratio: 1;
-  border-radius: 0.45rem;
-  object-fit: cover;
-  width: 100%;
-}
-
-.lightbox {
-  align-items: center;
-  background: rgba(8, 15, 31, 0.86);
-  display: flex;
-  inset: 0;
-  justify-content: center;
-  padding: 1rem;
-  position: fixed;
-  z-index: 2000;
-}
-
-.lightbox-dialog {
-  background: #fff;
-  border-radius: 1rem;
-  max-height: 92vh;
-  max-width: 980px;
-  overflow: hidden;
-  position: relative;
-  width: 100%;
-}
-
-.lightbox-close {
-  background: rgba(0, 0, 0, 0.72);
-  border: 0;
-  border-radius: 50%;
-  color: #fff;
-  font-size: 1.5rem;
-  height: 2.5rem;
-  position: absolute;
-  right: 1rem;
-  top: 1rem;
-  width: 2.5rem;
-  z-index: 3;
-}
-
-.lightbox-image {
-  display: block;
-  max-height: 72vh;
-  object-fit: contain;
-  width: 100%;
-}
-
-.lightbox-info {
-  padding: 1rem;
-}
-
-@media (max-width: 992px) {
-  .masonry-gallery {
-    column-count: 2;
-  }
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 @media (max-width: 768px) {
@@ -969,44 +784,34 @@ onUnmounted(() => {
     max-width: none;
   }
 
-  .masonry-gallery {
-    column-count: 1;
+  .album-grid {
+    gap: 1.15rem 0.85rem;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    padding-top: 0.5rem;
   }
 
-  .album-strip {
-    display: flex;
-    gap: 0.75rem;
-    margin-left: -0.25rem;
-    margin-right: -0.25rem;
-    overflow-x: auto;
-    padding: 0.25rem 0.25rem 0.7rem;
-    scroll-snap-type: x mandatory;
+  .album-card:hover {
+    transform: none;
   }
 
-  .album-card {
-    flex: 0 0 145px;
-    scroll-snap-align: start;
+  .album-stack {
+    height: 132px;
+    margin-bottom: 0.55rem;
   }
 
-  .photo-open img {
-    min-height: 260px;
+  .album-stack img,
+  .album-stack-empty {
+    border-radius: 1rem;
+    box-shadow: 0 16px 30px rgba(15, 23, 42, 0.18);
+    height: 98px;
+    top: calc(10px + (var(--stack-index, 1) * 8px));
+    transform: translateX(-50%) rotate(calc((var(--stack-index, 1) - 1) * 7deg));
+    width: 130px;
   }
 
-  .lightbox {
-    align-items: flex-end;
-    padding: 0.65rem;
-  }
-
-  .lightbox-dialog {
-    border-radius: 1rem 1rem 0.5rem 0.5rem;
-    max-height: 88vh;
-  }
-
-  .lightbox-close {
-    height: 2.25rem;
-    right: 0.75rem;
-    top: 0.75rem;
-    width: 2.25rem;
+  .album-card:hover .album-stack img {
+    top: calc(10px + (var(--stack-index, 1) * 8px));
+    transform: translateX(-50%) rotate(calc((var(--stack-index, 1) - 1) * 7deg));
   }
 
   .stats-panel {
