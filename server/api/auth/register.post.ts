@@ -12,18 +12,32 @@ export default defineEventHandler(async (event) => {
 
     const getField = (name: string) => {
       const field = formData.find(f => f.name === name)
-      return field?.data?.toString() || ''
+      return field?.data?.toString().trim() || ''
     }
 
-    const nombre = getField('nombre')
-    const apellido = getField('apellido')
+    const toDataUri = (file: NonNullable<typeof formData>[number]) => {
+      const mimeType = file.type || 'image/jpeg'
+      return `data:${mimeType};base64,${file.data.toString('base64')}`
+    }
+
+    const nombreCompleto = getField('nombreCompleto')
+    const legacyNombre = getField('nombre')
+    const legacyApellido = getField('apellido')
     const celular = getField('celular')
-    const email = getField('email')
+    const email = getField('email').toLowerCase()
     const password = getField('password')
     const fechaNacimiento = getField('fechaNacimiento')
 
-    if (!nombre || !apellido || !celular || !email || !password) {
+    if ((!nombreCompleto && (!legacyNombre || !legacyApellido)) || !celular || !email || !password) {
       throw createError({ statusCode: 400, statusMessage: 'Todos los campos son obligatorios' })
+    }
+
+    const nameParts = nombreCompleto ? nombreCompleto.split(/\s+/).filter(Boolean) : []
+    const nombre = nombreCompleto ? nameParts.shift() || '' : legacyNombre
+    const apellido = nombreCompleto ? nameParts.join(' ') : legacyApellido
+
+    if (!nombre || !apellido) {
+      throw createError({ statusCode: 400, statusMessage: 'Ingresa nombre y apellido' })
     }
 
     const paymentProofFile = formData.find(f => f.name === 'paymentProof')
@@ -39,21 +53,21 @@ export default defineEventHandler(async (event) => {
       throw createError({ statusCode: 409, statusMessage: 'Correo ya registrado' })
     }
 
-    let fotoUrl: string | undefined
+    let paymentProofUrl = ''
 
-    const fotoFile = formData.find(f => f.name === 'foto')
-    if (fotoFile && fotoFile.data && fotoFile.data.length > 0) {
-      const base64 = `data:${fotoFile.type};base64,${fotoFile.data.toString('base64')}`
-      const uploadResult = await cloudinary.uploader.upload(base64, {
-        folder: 'entrenos/profiles'
+    try {
+      const paymentProofUpload = await cloudinary.uploader.upload(toDataUri(paymentProofFile), {
+        folder: 'entrenos/payment-proofs',
+        resource_type: 'image'
       })
-      fotoUrl = uploadResult.secure_url
+      paymentProofUrl = paymentProofUpload.secure_url
+    } catch (error) {
+      console.error('Error subiendo comprobante de pago:', error)
+      throw createError({
+        statusCode: 502,
+        statusMessage: 'No se pudo subir el comprobante de pago. Intenta con otra imagen o vuelve a intentarlo.'
+      })
     }
-
-    const paymentProofBase64 = `data:${paymentProofFile.type};base64,${paymentProofFile.data.toString('base64')}`
-    const paymentProofUpload = await cloudinary.uploader.upload(paymentProofBase64, {
-      folder: 'entrenos/payment-proofs'
-    })
 
     const hash = await bcrypt.hash(password, 10)
 
@@ -64,30 +78,34 @@ export default defineEventHandler(async (event) => {
         celular,
         email,
         password: hash,
-        foto: fotoUrl || null,
+        foto: null,
         fechaNacimiento: fechaNacimiento ? new Date(fechaNacimiento) : null,
         estado: 'INACTIVO',
         role: 'USER',
-        paymentProofUrl: paymentProofUpload.secure_url,
+        paymentProofUrl,
         subscriptionStatus: 'PENDING'
       }
     })
 
-    const admins = await prisma.user.findMany({
-      where: { role: 'ADMIN', estado: 'ACTIVO' },
-      select: { id: true }
-    })
+    try {
+      const admins = await prisma.user.findMany({
+        where: { role: 'ADMIN', estado: 'ACTIVO' },
+        select: { id: true }
+      })
 
-    await Promise.all(admins.map(admin => prisma.notification.create({
-      data: {
-        userId: admin.id,
-        title: 'Nueva suscripción por aprobar',
-        message: `${user.nombre} ${user.apellido} envió una captura de pago. Revisa el comprobante y aprueba la cuenta desde esta notificación.`,
-        imageUrl: user.paymentProofUrl,
-        actionType: 'SUBSCRIPTION_APPROVAL',
-        targetUserId: user.id
-      }
-    })))
+      await Promise.all(admins.map(admin => prisma.notification.create({
+        data: {
+          userId: admin.id,
+          title: 'Nueva suscripción por aprobar',
+          message: `${user.nombre} ${user.apellido} envió una captura de pago. Revisa el comprobante y aprueba la cuenta desde esta notificación.`,
+          imageUrl: user.paymentProofUrl,
+          actionType: 'SUBSCRIPTION_APPROVAL',
+          targetUserId: user.id
+        }
+      })))
+    } catch (error) {
+      console.error('Error creando notificación de suscripción:', error)
+    }
 
     return {
       success: true,

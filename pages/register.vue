@@ -18,9 +18,7 @@ Completa tus datos y luego realiza el pago por Bre-B para enviar tu solicitud.
 </div>
 
 <template v-if="step === 'datos'">
-  <input v-model="nombre" class="form-control mb-3" placeholder="Nombre">
-
-  <input v-model="apellido" class="form-control mb-3" placeholder="Apellido">
+  <input v-model="nombreCompleto" class="form-control mb-3" placeholder="Nombre completo">
 
   <input v-model="celular" class="form-control mb-3" placeholder="Celular">
 
@@ -30,13 +28,6 @@ Completa tus datos y luego realiza el pago por Bre-B para enviar tu solicitud.
 
   <label class="form-label fw-bold">Fecha de Nacimiento</label>
   <input v-model="fechaNacimiento" type="date" class="form-control mb-3">
-
-  <label class="form-label fw-bold">Foto de Perfil</label>
-  <input @change="seleccionarImagen" type="file" class="form-control mb-3" accept="image/*">
-
-  <div v-if="preview" class="text-center mb-3">
-    <img :src="preview" class="rounded-circle shadow" width="120" height="120" style="object-fit:cover;">
-  </div>
 
   <button @click="goToPayment" class="btn btn-primary w-100">
     Siguiente
@@ -113,15 +104,12 @@ Completa tus datos y luego realiza el pago por Bre-B para enviar tu solicitud.
 
 <script setup>
 const step = ref('datos')
-const nombre = ref('')
-const apellido = ref('')
+const nombreCompleto = ref('')
 const celular = ref('')
 const email = ref('')
 const password = ref('')
 const fechaNacimiento = ref('')
-const foto = ref(null)
 const paymentProof = ref(null)
-const preview = ref('')
 const paymentPreview = ref('')
 const mensaje = ref('')
 const mensajeError = ref(false)
@@ -143,18 +131,11 @@ const copyPaymentKey = async () => {
   }
 }
 
-const seleccionarImagen = (e) => {
-  const file = e.target.files[0]
-  foto.value = file
-
-  if (file) {
-    preview.value = URL.createObjectURL(file)
-  }
-}
-
 const seleccionarComprobante = (e) => {
   const file = e.target.files[0]
   paymentProof.value = file
+  if (paymentPreview.value) URL.revokeObjectURL(paymentPreview.value)
+  paymentPreview.value = ''
 
   if (file) {
     paymentPreview.value = URL.createObjectURL(file)
@@ -162,9 +143,21 @@ const seleccionarComprobante = (e) => {
 }
 
 const validateData = () => {
-  if (!nombre.value || !apellido.value || !celular.value || !email.value || !password.value) {
+  if (!nombreCompleto.value.trim() || !celular.value.trim() || !email.value.trim() || !password.value) {
     mensajeError.value = true
     mensaje.value = 'Todos los campos son obligatorios'
+    return false
+  }
+
+  if (nombreCompleto.value.trim().split(/\s+/).length < 2) {
+    mensajeError.value = true
+    mensaje.value = 'Ingresa tu nombre y apellido'
+    return false
+  }
+
+  if (!email.value.includes('@')) {
+    mensajeError.value = true
+    mensaje.value = 'Ingresa un correo válido'
     return false
   }
 
@@ -196,19 +189,14 @@ const registrar = async () => {
 
   try {
     const formData = new FormData()
-    formData.append('nombre', nombre.value)
-    formData.append('apellido', apellido.value)
-    formData.append('celular', celular.value)
-    formData.append('email', email.value)
+    formData.append('nombreCompleto', nombreCompleto.value.trim())
+    formData.append('celular', celular.value.trim())
+    formData.append('email', email.value.trim().toLowerCase())
     formData.append('password', password.value)
     formData.append('paymentProof', paymentProof.value)
 
     if (fechaNacimiento.value) {
       formData.append('fechaNacimiento', fechaNacimiento.value)
-    }
-
-    if (foto.value) {
-      formData.append('foto', foto.value)
     }
 
     const response = await $fetch('/api/auth/register', {
@@ -220,15 +208,12 @@ const registrar = async () => {
       mensajeError.value = false
       mensaje.value = `${response.message} En caso de que no suceda durante ese tiempo, comunícate por llamada a la línea 3143509438.`
 
-      nombre.value = ''
-      apellido.value = ''
+      nombreCompleto.value = ''
       celular.value = ''
       email.value = ''
       password.value = ''
       fechaNacimiento.value = ''
-      foto.value = null
       paymentProof.value = null
-      preview.value = ''
       paymentPreview.value = ''
       step.value = 'datos'
     } else {
@@ -237,7 +222,7 @@ const registrar = async () => {
     }
   } catch (error) {
     mensajeError.value = true
-    mensaje.value = error?.data?.statusMessage || 'Error al registrar'
+    mensaje.value = error?.data?.statusMessage || error?.message || 'Error al registrar'
   }
 
   loading.value = false
