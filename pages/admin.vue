@@ -271,6 +271,37 @@
 
       <div class="card shadow-sm mb-4">
         <div class="card-body">
+          <div class="d-flex justify-content-between align-items-start gap-3 flex-wrap mb-3">
+            <div>
+              <p class="eyebrow mb-1">Frase del día</p>
+              <h5 class="card-title mb-1">Respuestas “Gracias”</h5>
+              <p class="text-muted small mb-0">Últimos usuarios que agradecieron la frase diaria.</p>
+            </div>
+            <button class="btn btn-outline-primary btn-sm rounded-pill" :disabled="loadingDailyPhraseThanks" @click="loadDailyPhraseThanks">
+              <span v-if="loadingDailyPhraseThanks">Actualizando...</span>
+              <span v-else>Actualizar</span>
+            </button>
+          </div>
+
+          <div v-if="dailyPhraseThanksError" class="alert alert-warning small">
+            {{ dailyPhraseThanksError }}
+          </div>
+          <div v-else-if="!dailyPhraseThanks.length" class="text-muted">Aún no hay respuestas “Gracias”.</div>
+          <div v-for="item in dailyPhraseThanks" :key="item.id" class="phrase-thanks-row">
+            <div class="d-flex justify-content-between gap-3">
+              <div>
+                <strong>{{ item.user?.nombre }} {{ item.user?.apellido }}</strong>
+                <p class="mb-1 text-muted">{{ item.phrase }}</p>
+                <small class="text-muted">{{ item.user?.email }} - {{ formatDate(item.reactedAt || item.seenAt) }}</small>
+              </div>
+              <span class="badge text-bg-primary">Gracias</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card shadow-sm mb-4">
+        <div class="card-body">
           <h5 class="card-title mb-3">Quejas y reclamos</h5>
           <div v-if="!complaints.length" class="text-muted">No hay quejas o reclamos.</div>
           <div v-for="complaint in complaints" :key="complaint.id" class="complaint-row">
@@ -398,6 +429,7 @@ const users = ref([])
 const reviews = ref([])
 const notifications = ref([])
 const complaints = ref([])
+const dailyPhraseThanks = ref([])
 const notificationUser = ref(null)
 const paymentProofUser = ref(null)
 const selectedComplaint = ref(null)
@@ -415,6 +447,8 @@ const loadingCloudinary = ref(false)
 const driveUsage = ref(null)
 const driveError = ref('')
 const loadingDrive = ref(false)
+const loadingDailyPhraseThanks = ref(false)
+const dailyPhraseThanksError = ref('')
 let cloudinaryInterval = null
 let driveInterval = null
 
@@ -463,6 +497,20 @@ const loadDriveUsage = async () => {
   }
 }
 
+const loadDailyPhraseThanks = async () => {
+  loadingDailyPhraseThanks.value = true
+  dailyPhraseThanksError.value = ''
+
+  try {
+    const res = await $fetch('/api/admin/daily-phrase/thanks')
+    dailyPhraseThanks.value = res.thanks || []
+  } catch (err) {
+    dailyPhraseThanksError.value = err?.data?.statusMessage || 'No se pudieron consultar las respuestas'
+  } finally {
+    loadingDailyPhraseThanks.value = false
+  }
+}
+
 const loadAdminData = async () => {
   loading.value = true
   error.value = ''
@@ -485,6 +533,7 @@ const loadAdminData = async () => {
     reviews.value = reviewsRes.reviews || []
     notifications.value = notificationsRes.notifications || []
     complaints.value = complaintsRes.complaints || []
+    await loadDailyPhraseThanks()
   } catch (err) {
     error.value = err?.data?.statusMessage || 'No se pudo cargar el dashboard'
   } finally {
@@ -780,6 +829,11 @@ onUnmounted(() => {
   padding: 1rem 0;
 }
 
+.phrase-thanks-row {
+  border-top: 1px solid #edf0f3;
+  padding: 1rem 0;
+}
+
 .admin-response {
   background: #f8fbff;
   border: 1px solid #e5efff;
@@ -952,6 +1006,7 @@ onUnmounted(() => {
 
   .notification-row > .d-flex,
   .review-row > .d-flex,
+  .phrase-thanks-row > .d-flex,
   .complaint-row > div {
     align-items: flex-start !important;
     flex-direction: column;

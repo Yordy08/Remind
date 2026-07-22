@@ -10,6 +10,7 @@
     <Footer />
 
     <ReviewPrompt />
+    <DailyPhrasePrompt />
 
   </div>
 </template>
