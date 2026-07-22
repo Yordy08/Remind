@@ -240,6 +240,9 @@
                       <button class="btn btn-outline-warning" @click="requireReview(item)">
                         Exigir reseña
                       </button>
+                      <button class="btn btn-outline-danger" @click="deleteUser(item)">
+                        Eliminar
+                      </button>
                     </div>
                   </td>
                 </tr>
@@ -261,9 +264,14 @@
                 <p class="mb-1 text-muted">{{ notification.message }}</p>
                 <small class="text-muted">{{ formatDate(notification.createdAt) }}</small>
               </div>
-              <span class="badge" :class="notification.read ? 'text-bg-light' : 'text-bg-warning'">
-                {{ notification.read ? 'Leída' : 'Nueva' }}
-              </span>
+              <div class="d-flex align-items-start gap-2">
+                <span class="badge" :class="notification.read ? 'text-bg-light' : 'text-bg-warning'">
+                  {{ notification.read ? 'Leída' : 'Nueva' }}
+                </span>
+                <button class="btn btn-sm btn-outline-danger" @click="deleteNotification(notification)">
+                  Eliminar
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -274,27 +282,29 @@
           <div class="d-flex justify-content-between align-items-start gap-3 flex-wrap mb-3">
             <div>
               <p class="eyebrow mb-1">Frase del día</p>
-              <h5 class="card-title mb-1">Respuestas “Gracias”</h5>
-              <p class="text-muted small mb-0">Últimos usuarios que agradecieron la frase diaria.</p>
+              <h5 class="card-title mb-1">Respuestas de usuarios</h5>
+              <p class="text-muted small mb-0">Últimos usuarios que respondieron la frase diaria.</p>
             </div>
-            <button class="btn btn-outline-primary btn-sm rounded-pill" :disabled="loadingDailyPhraseThanks" @click="loadDailyPhraseThanks">
-              <span v-if="loadingDailyPhraseThanks">Actualizando...</span>
+            <button class="btn btn-outline-primary btn-sm rounded-pill" :disabled="loadingDailyPhraseReactions" @click="loadDailyPhraseReactions">
+              <span v-if="loadingDailyPhraseReactions">Actualizando...</span>
               <span v-else>Actualizar</span>
             </button>
           </div>
 
-          <div v-if="dailyPhraseThanksError" class="alert alert-warning small">
-            {{ dailyPhraseThanksError }}
+          <div v-if="dailyPhraseReactionsError" class="alert alert-warning small">
+            {{ dailyPhraseReactionsError }}
           </div>
-          <div v-else-if="!dailyPhraseThanks.length" class="text-muted">Aún no hay respuestas “Gracias”.</div>
-          <div v-for="item in dailyPhraseThanks" :key="item.id" class="phrase-thanks-row">
+          <div v-else-if="!dailyPhraseReactions.length" class="text-muted">Aún no hay respuestas.</div>
+          <div v-for="item in dailyPhraseReactions" :key="item.id" class="phrase-thanks-row">
             <div class="d-flex justify-content-between gap-3">
               <div>
                 <strong>{{ item.user?.nombre }} {{ item.user?.apellido }}</strong>
                 <p class="mb-1 text-muted">{{ item.phrase }}</p>
                 <small class="text-muted">{{ item.user?.email }} - {{ formatDate(item.reactedAt || item.seenAt) }}</small>
               </div>
-              <span class="badge text-bg-primary">Gracias</span>
+              <span class="badge" :class="dailyPhraseActionClass(item.action)">
+                {{ dailyPhraseActionLabel(item.action) }}
+              </span>
             </div>
           </div>
         </div>
@@ -323,6 +333,9 @@
                 <button class="btn btn-sm btn-outline-primary" @click="openComplaint(complaint)">
                   Responder
                 </button>
+                <button class="btn btn-sm btn-outline-danger" @click="deleteComplaint(complaint)">
+                  Eliminar
+                </button>
               </div>
             </div>
           </div>
@@ -340,7 +353,12 @@
                 <p class="mb-1">{{ review.text }}</p>
                 <small class="text-muted">{{ formatDate(review.createdAt) }}</small>
               </div>
-              <span class="rating">★ {{ review.rating }}</span>
+              <div class="d-flex align-items-start gap-2">
+                <span class="rating">★ {{ review.rating }}</span>
+                <button class="btn btn-sm btn-outline-danger" @click="deleteReview(review)">
+                  Eliminar
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -429,7 +447,7 @@ const users = ref([])
 const reviews = ref([])
 const notifications = ref([])
 const complaints = ref([])
-const dailyPhraseThanks = ref([])
+const dailyPhraseReactions = ref([])
 const notificationUser = ref(null)
 const paymentProofUser = ref(null)
 const selectedComplaint = ref(null)
@@ -447,8 +465,8 @@ const loadingCloudinary = ref(false)
 const driveUsage = ref(null)
 const driveError = ref('')
 const loadingDrive = ref(false)
-const loadingDailyPhraseThanks = ref(false)
-const dailyPhraseThanksError = ref('')
+const loadingDailyPhraseReactions = ref(false)
+const dailyPhraseReactionsError = ref('')
 let cloudinaryInterval = null
 let driveInterval = null
 
@@ -497,17 +515,17 @@ const loadDriveUsage = async () => {
   }
 }
 
-const loadDailyPhraseThanks = async () => {
-  loadingDailyPhraseThanks.value = true
-  dailyPhraseThanksError.value = ''
+const loadDailyPhraseReactions = async () => {
+  loadingDailyPhraseReactions.value = true
+  dailyPhraseReactionsError.value = ''
 
   try {
-    const res = await $fetch('/api/admin/daily-phrase/thanks')
-    dailyPhraseThanks.value = res.thanks || []
+    const res = await $fetch('/api/admin/daily-phrase/reactions')
+    dailyPhraseReactions.value = res.reactions || []
   } catch (err) {
-    dailyPhraseThanksError.value = err?.data?.statusMessage || 'No se pudieron consultar las respuestas'
+    dailyPhraseReactionsError.value = err?.data?.statusMessage || 'No se pudieron consultar las respuestas'
   } finally {
-    loadingDailyPhraseThanks.value = false
+    loadingDailyPhraseReactions.value = false
   }
 }
 
@@ -533,7 +551,7 @@ const loadAdminData = async () => {
     reviews.value = reviewsRes.reviews || []
     notifications.value = notificationsRes.notifications || []
     complaints.value = complaintsRes.complaints || []
-    await loadDailyPhraseThanks()
+    await loadDailyPhraseReactions()
   } catch (err) {
     error.value = err?.data?.statusMessage || 'No se pudo cargar el dashboard'
   } finally {
@@ -627,6 +645,72 @@ const requireReview = async (item) => {
   }
 }
 
+const deleteUser = async (item) => {
+  const confirmed = confirm(`Eliminar usuario: ${item.nombre} ${item.apellido}\n\nEsta acción eliminará su cuenta, fotos, álbumes, reseñas, reclamos, comentarios, likes, notificaciones y archivos asociados en Cloudinary. No se puede deshacer.\n\n¿Deseas continuar?`)
+  if (!confirmed) return
+
+  try {
+    const res = await $fetch('/api/admin/users/delete', {
+      method: 'POST',
+      body: { userId: item.id }
+    })
+
+    users.value = users.value.filter(userItem => userItem.id !== item.id)
+    reviews.value = reviews.value.filter(review => review.userId !== item.id)
+    complaints.value = complaints.value.filter(complaint => complaint.userId !== item.id)
+    notifications.value = notifications.value.filter(notification => notification.userId !== item.id && notification.targetUserId !== item.id)
+    dailyPhraseReactions.value = dailyPhraseReactions.value.filter(reaction => reaction.userId !== item.id)
+
+    if (res.cloudinary?.failures?.length) {
+      alert(`Usuario eliminado, pero ${res.cloudinary.failures.length} archivo(s) de Cloudinary no se pudieron eliminar.`)
+    }
+  } catch (err) {
+    alert(err?.data?.statusMessage || 'No se pudo eliminar el usuario')
+  }
+}
+
+const deleteReview = async (review) => {
+  if (!confirm('¿Eliminar esta reseña? Esta acción no se puede deshacer.')) return
+
+  try {
+    await $fetch('/api/admin/reviews/delete', {
+      method: 'POST',
+      body: { reviewId: review.id }
+    })
+    reviews.value = reviews.value.filter(item => item.id !== review.id)
+  } catch (err) {
+    alert(err?.data?.statusMessage || 'No se pudo eliminar la reseña')
+  }
+}
+
+const deleteNotification = async (notification) => {
+  if (!confirm('¿Eliminar esta notificación? Esta acción no se puede deshacer.')) return
+
+  try {
+    await $fetch('/api/admin/notifications/delete', {
+      method: 'POST',
+      body: { notificationId: notification.id }
+    })
+    notifications.value = notifications.value.filter(item => item.id !== notification.id)
+  } catch (err) {
+    alert(err?.data?.statusMessage || 'No se pudo eliminar la notificación')
+  }
+}
+
+const deleteComplaint = async (complaint) => {
+  if (!confirm('¿Eliminar esta queja o reclamo? Esta acción no se puede deshacer.')) return
+
+  try {
+    await $fetch('/api/admin/complaints/delete', {
+      method: 'POST',
+      body: { complaintId: complaint.id }
+    })
+    complaints.value = complaints.value.filter(item => item.id !== complaint.id)
+  } catch (err) {
+    alert(err?.data?.statusMessage || 'No se pudo eliminar el reclamo')
+  }
+}
+
 const openComplaint = (complaint) => {
   selectedComplaint.value = complaint
   complaintResponse.value = complaint.response || ''
@@ -672,6 +756,17 @@ const complaintStatusClass = (status) => {
     REVIEWED: 'text-bg-info',
     ANSWERED: 'text-bg-success'
   }[status] || 'text-bg-secondary'
+}
+
+const dailyPhraseActionLabel = (action) => {
+  return {
+    LOVE: 'Me encanta',
+    THANKS: 'Gracias'
+  }[action] || action
+}
+
+const dailyPhraseActionClass = (action) => {
+  return action === 'LOVE' ? 'text-bg-danger' : 'text-bg-primary'
 }
 
 const formatDate = (date) => {
