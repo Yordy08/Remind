@@ -51,13 +51,8 @@
               </div>
             </div>
             <div v-if="isOwnProfile" class="profile-actions d-flex gap-2">
-              <button class="btn btn-primary d-flex align-items-center gap-2">
-                <span>➕</span>
-                <span>Seguir</span>
-              </button>
-              <button class="btn btn-light border d-flex align-items-center gap-2">
-                <span>✉️</span>
-                <span>Mensaje</span>
+              <button class="btn btn-primary d-flex align-items-center gap-2" type="button" @click="editingProfile = true">
+                <span>Editar perfil</span>
               </button>
             </div>
           </div>
@@ -102,6 +97,10 @@
                     <span class="text-muted">📧</span>
                     <span>{{ profile.user.email }}</span>
                   </li>
+                  <li v-if="profile.user.celular" class="d-flex align-items-start gap-2 mb-2">
+                    <span class="text-muted">📱</span>
+                    <span>{{ profile.user.celular }}</span>
+                  </li>
                   <li v-if="profile.user.fechaNacimiento" class="d-flex align-items-start gap-2 mb-2">
                     <span class="text-muted">🎂</span>
                     <span>{{ formatBirthDate(profile.user.fechaNacimiento) }}</span>
@@ -115,6 +114,45 @@
                     <span class="text-success small">{{ profile.user.estado }}</span>
                   </li>
                 </ul>
+              </div>
+            </div>
+
+            <!-- Editar perfil -->
+            <div v-if="isOwnProfile" class="card shadow-sm mb-4">
+              <div class="card-body">
+                <h5 class="card-title mb-3">Editar perfil</h5>
+                <div v-if="profilePhotoPreview" class="profile-photo-preview mb-3">
+                  <img :src="profilePhotoPreview" alt="Vista previa de foto de perfil">
+                </div>
+                <label class="form-label small fw-semibold">Foto de perfil</label>
+                <input type="file" class="form-control mb-3" accept="image/*" @change="onProfilePhotoChange">
+
+                <div class="row g-2">
+                  <div class="col-md-6">
+                    <label class="form-label small fw-semibold">Nombre</label>
+                    <input v-model="profileForm.nombre" class="form-control mb-2" placeholder="Nombre">
+                  </div>
+                  <div class="col-md-6">
+                    <label class="form-label small fw-semibold">Apellido</label>
+                    <input v-model="profileForm.apellido" class="form-control mb-2" placeholder="Apellido">
+                  </div>
+                </div>
+
+                <label class="form-label small fw-semibold">Celular</label>
+                <input v-model="profileForm.celular" class="form-control mb-2" placeholder="Celular">
+
+                <label class="form-label small fw-semibold">Fecha de nacimiento</label>
+                <input v-model="profileForm.fechaNacimiento" type="date" class="form-control mb-2">
+
+                <label class="form-label small fw-semibold">Biografía</label>
+                <textarea v-model="profileForm.bio" class="form-control mb-3" rows="3" placeholder="Cuéntanos algo sobre ti"></textarea>
+
+                <button class="btn btn-primary w-100" :disabled="savingProfile" @click="saveProfile">
+                  <span v-if="savingProfile">Guardando...</span>
+                  <span v-else>Guardar cambios</span>
+                </button>
+                <p v-if="profileMessage" class="text-success small mt-2 mb-0">{{ profileMessage }}</p>
+                <p v-if="profileError" class="text-danger small mt-2 mb-0">{{ profileError }}</p>
               </div>
             </div>
 
@@ -396,6 +434,19 @@ const confirmPassword = ref('')
 const changingPassword = ref(false)
 const passwordMessage = ref('')
 const passwordError = ref('')
+const editingProfile = ref(false)
+const savingProfile = ref(false)
+const profileMessage = ref('')
+const profileError = ref('')
+const profilePhotoFile = ref(null)
+const profilePhotoPreview = ref('')
+const profileForm = ref({
+  nombre: '',
+  apellido: '',
+  celular: '',
+  fechaNacimiento: '',
+  bio: ''
+})
 
 const commentInputs = ref({})
 const loadingLikes = ref({})
@@ -408,6 +459,26 @@ const fullName = computed(() => {
 })
 
 const isPublicProfile = computed(() => Boolean(profile.value?.publicView))
+
+const fillProfileForm = () => {
+  const profileUser = profile.value?.user
+  if (!profileUser) return
+
+  if (profilePhotoPreview.value?.startsWith('blob:')) {
+    URL.revokeObjectURL(profilePhotoPreview.value)
+  }
+
+  profileForm.value = {
+    nombre: profileUser.nombre || '',
+    apellido: profileUser.apellido || '',
+    celular: profileUser.celular || '',
+    fechaNacimiento: profileUser.fechaNacimiento ? new Date(profileUser.fechaNacimiento).toISOString().slice(0, 10) : '',
+    bio: profileUser.bio || ''
+  }
+
+  profilePhotoPreview.value = profileUser.foto || ''
+  profilePhotoFile.value = null
+}
 
 const loadProfile = async () => {
   if (!userId.value) {
@@ -423,6 +494,7 @@ const loadProfile = async () => {
   try {
     const res = await $fetch(`/api/users/profile?id=${userId.value}`)
     profile.value = res
+    fillProfileForm()
   } catch (err) {
     console.error('Error cargando perfil:', err)
     error.value = true
@@ -437,6 +509,12 @@ watch(() => route.query.id, () => {
 
 onMounted(() => {
   checkAuth()
+})
+
+onUnmounted(() => {
+  if (profilePhotoPreview.value?.startsWith('blob:')) {
+    URL.revokeObjectURL(profilePhotoPreview.value)
+  }
 })
 
 const formatDate = (date) => {
@@ -565,6 +643,69 @@ const submitComment = async (post) => {
   }
 }
 
+const onProfilePhotoChange = (event) => {
+  const file = event.target.files?.[0]
+  profileError.value = ''
+
+  if (!file) return
+
+  if (!file.type?.startsWith('image/')) {
+    profileError.value = 'Selecciona una imagen válida'
+    return
+  }
+
+  if (file.size > 5 * 1024 * 1024) {
+    profileError.value = 'La foto no puede superar 5 MB'
+    return
+  }
+
+  if (profilePhotoPreview.value?.startsWith('blob:')) {
+    URL.revokeObjectURL(profilePhotoPreview.value)
+  }
+
+  profilePhotoFile.value = file
+  profilePhotoPreview.value = URL.createObjectURL(file)
+}
+
+const saveProfile = async () => {
+  profileMessage.value = ''
+  profileError.value = ''
+
+  if (!profileForm.value.nombre.trim() || !profileForm.value.apellido.trim() || !profileForm.value.celular.trim()) {
+    profileError.value = 'Nombre, apellido y celular son obligatorios'
+    return
+  }
+
+  savingProfile.value = true
+
+  try {
+    const formData = new FormData()
+    formData.append('nombre', profileForm.value.nombre.trim())
+    formData.append('apellido', profileForm.value.apellido.trim())
+    formData.append('celular', profileForm.value.celular.trim())
+    formData.append('fechaNacimiento', profileForm.value.fechaNacimiento || '')
+    formData.append('bio', profileForm.value.bio.trim())
+
+    if (profilePhotoFile.value) {
+      formData.append('foto', profilePhotoFile.value)
+    }
+
+    const res = await $fetch('/api/users/profile', {
+      method: 'PUT',
+      body: formData
+    })
+
+    profile.value.user = res.user
+    fillProfileForm()
+    await checkAuth()
+    profileMessage.value = 'Perfil actualizado correctamente'
+  } catch (err) {
+    profileError.value = err?.data?.statusMessage || 'No se pudo actualizar el perfil'
+  } finally {
+    savingProfile.value = false
+  }
+}
+
 const changePassword = async () => {
   passwordMessage.value = ''
   passwordError.value = ''
@@ -653,6 +794,23 @@ const changePassword = async () => {
 .profile-avatar {
   border: 5px solid #fff;
   box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+}
+
+.profile-photo-preview {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 1rem;
+  display: grid;
+  place-items: center;
+  padding: 0.75rem;
+}
+
+.profile-photo-preview img {
+  aspect-ratio: 1;
+  border-radius: 999px;
+  height: 112px;
+  object-fit: cover;
+  width: 112px;
 }
 
 .profile-info {

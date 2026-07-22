@@ -40,33 +40,22 @@ Completa tus datos y luego realiza el pago por Bre-B para enviar tu solicitud.
       <div>
         <p class="text-primary fw-bold text-uppercase small mb-1">Método de pago</p>
         <h4 class="mb-1">Pago por Bre-B</h4>
-        <p class="text-muted mb-0">Escanea el QR o paga usando la llave.</p>
+        <p class="text-muted mb-0">Escanea el QR desde Nequi o Bre-B para realizar el pago.</p>
       </div>
       <span class="badge text-bg-primary rounded-pill">Bre-B</span>
     </div>
 
     <div class="row g-4 align-items-center">
-      <div class="col-md-5 text-center">
+      <div class="col-md-5 text-center mx-auto">
         <img :src="qrUrl" alt="QR Bre-B" class="qr-image shadow-sm">
       </div>
       <div class="col-md-7">
-        <label class="form-label fw-bold">Llave de pago</label>
-        <div class="input-group mb-3">
-          <input :value="paymentKey" class="form-control" readonly>
-          <button class="btn btn-outline-primary" type="button" @click="copyPaymentKey">
-            Copiar
-          </button>
-        </div>
-
         <div class="payment-instructions">
           <strong>Instrucciones</strong>
           <p class="mb-1">1. Abre la app de tu banco.</p>
-          <p class="mb-1">2. Elige Bre-B y paga por llave.</p>
-          <p class="mb-1">3. Usa la llave: <strong>{{ paymentKey }}</strong>.</p>
-          <p class="mb-0">4. Sube la captura del comprobante abajo.</p>
+          <p class="mb-1">2. Elige Nequi o Bre-B y escanea el QR.</p>
+          <p class="mb-0">3. Sube la captura del comprobante abajo.</p>
         </div>
-
-        <p v-if="copyMessage" class="text-success small mt-2 mb-0">{{ copyMessage }}</p>
       </div>
     </div>
   </div>
@@ -103,6 +92,8 @@ Completa tus datos y luego realiza el pago por Bre-B para enviar tu solicitud.
 </template>
 
 <script setup>
+import qrImage from '~/assets/QR.jpeg'
+
 const step = ref('datos')
 const nombreCompleto = ref('')
 const celular = ref('')
@@ -114,22 +105,7 @@ const paymentPreview = ref('')
 const mensaje = ref('')
 const mensajeError = ref(false)
 const loading = ref(false)
-const paymentKey = 'yordisdurango@gmail.com'
-const copyMessage = ref('')
-
-const qrUrl = computed(() => {
-  const payload = `Bre-B pago por llave: ${paymentKey}`
-  return `https://api.qrserver.com/v1/create-qr-code/?size=260x260&data=${encodeURIComponent(payload)}`
-})
-
-const copyPaymentKey = async () => {
-  try {
-    await navigator.clipboard.writeText(paymentKey)
-    copyMessage.value = 'Llave copiada correctamente'
-  } catch {
-    copyMessage.value = 'No se pudo copiar automáticamente. Copia la llave manualmente.'
-  }
-}
+const qrUrl = qrImage
 
 const seleccionarComprobante = (e) => {
   const file = e.target.files[0]

@@ -28,6 +28,7 @@ export default defineEventHandler(async (event) => {
             nombre: true,
             apellido: true,
             email: true,
+            celular: true,
             foto: true,
             bio: true,
             fechaNacimiento: true,
