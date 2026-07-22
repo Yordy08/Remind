@@ -124,6 +124,74 @@
 
       <div class="card shadow-sm mb-4">
         <div class="card-body">
+          <div class="d-flex justify-content-between align-items-start gap-3 flex-wrap mb-3">
+            <div>
+              <p class="eyebrow mb-1">Google Drive Backup</p>
+              <h5 class="card-title mb-1">Almacenamiento de respaldo</h5>
+              <p class="text-muted small mb-0">
+                Mide los archivos guardados por Apps Script en la carpeta de respaldo.
+              </p>
+            </div>
+            <button class="btn btn-outline-primary btn-sm rounded-pill" :disabled="loadingDrive" @click="loadDriveUsage">
+              <span v-if="loadingDrive">Actualizando...</span>
+              <span v-else>Actualizar ahora</span>
+            </button>
+          </div>
+
+          <div v-if="driveError" class="alert alert-warning small">
+            {{ driveError }}
+          </div>
+
+          <template v-else-if="driveUsage">
+            <div class="d-flex justify-content-between small mb-1">
+              <strong>Uso de almacenamiento</strong>
+              <span>
+                {{ formatBytes(driveUsage.storage.usage) }} /
+                {{ formatBytes(driveUsage.storage.limit) }}
+                <small v-if="driveUsage.storage.estimatedLimit" class="text-muted">estimado</small>
+              </span>
+            </div>
+            <div class="progress cloudinary-progress mb-2">
+              <div
+                class="progress-bar"
+                :class="driveProgressClass"
+                :style="{ width: `${driveUsage.storage.percent}%` }"
+              >
+                {{ driveUsage.storage.percent }}%
+              </div>
+            </div>
+
+            <div v-if="driveUsage.storage.percent >= 80" class="alert alert-danger small mb-3">
+              Google Drive Backup está cerca de llenarse. Crea otra carpeta/cuenta o mueve respaldos antiguos.
+            </div>
+            <div v-else-if="driveUsage.storage.percent >= 60" class="alert alert-warning small mb-3">
+              El respaldo de Drive va en aumento. Conviene revisar espacio disponible.
+            </div>
+
+            <div class="cloudinary-metrics">
+              <div>
+                <span>{{ driveUsage.files }}</span>
+                <small>Archivos respaldados</small>
+              </div>
+              <div>
+                <span>{{ driveUsage.storage.percent }}%</span>
+                <small>Espacio usado</small>
+              </div>
+            </div>
+
+            <p class="text-muted small mt-3 mb-0">
+              Última actualización: {{ formatDate(driveUsage.updatedAt) }}
+            </p>
+          </template>
+
+          <div v-else class="text-muted small">
+            Cargando uso de Google Drive...
+          </div>
+        </div>
+      </div>
+
+      <div class="card shadow-sm mb-4">
+        <div class="card-body">
           <h5 class="card-title mb-3">Usuarios</h5>
           <div class="table-responsive">
             <table class="table admin-users-table align-middle">
@@ -344,13 +412,24 @@ const respondingComplaint = ref(false)
 const cloudinaryUsage = ref(null)
 const cloudinaryError = ref('')
 const loadingCloudinary = ref(false)
+const driveUsage = ref(null)
+const driveError = ref('')
+const loadingDrive = ref(false)
 let cloudinaryInterval = null
+let driveInterval = null
 
 const activeUsers = computed(() => users.value.filter(item => item.estado === 'ACTIVO').length)
 const pendingReviews = computed(() => users.value.filter(item => item.reviewRequired).length)
 const pendingComplaints = computed(() => complaints.value.filter(item => item.status !== 'ANSWERED').length)
 const cloudinaryProgressClass = computed(() => {
   const percent = cloudinaryUsage.value?.storage?.percent || 0
+  if (percent >= 80) return 'bg-danger'
+  if (percent >= 60) return 'bg-warning text-dark'
+  return 'bg-success'
+})
+
+const driveProgressClass = computed(() => {
+  const percent = driveUsage.value?.storage?.percent || 0
   if (percent >= 80) return 'bg-danger'
   if (percent >= 60) return 'bg-warning text-dark'
   return 'bg-success'
@@ -367,6 +446,20 @@ const loadCloudinaryUsage = async () => {
     cloudinaryError.value = err?.data?.statusMessage || 'No se pudo consultar Cloudinary'
   } finally {
     loadingCloudinary.value = false
+  }
+}
+
+const loadDriveUsage = async () => {
+  loadingDrive.value = true
+  driveError.value = ''
+
+  try {
+    const res = await $fetch('/api/admin/drive/usage')
+    driveUsage.value = res
+  } catch (err) {
+    driveError.value = err?.data?.statusMessage || 'No se pudo consultar Google Drive'
+  } finally {
+    loadingDrive.value = false
   }
 }
 
@@ -554,13 +647,15 @@ const formatBytes = (bytes) => {
 onMounted(async () => {
   await loadAdminData()
   if (user.value?.role === 'ADMIN') {
-    await loadCloudinaryUsage()
+    await Promise.all([loadCloudinaryUsage(), loadDriveUsage()])
     cloudinaryInterval = setInterval(loadCloudinaryUsage, 30000)
+    driveInterval = setInterval(loadDriveUsage, 30000)
   }
 })
 
 onUnmounted(() => {
   if (cloudinaryInterval) clearInterval(cloudinaryInterval)
+  if (driveInterval) clearInterval(driveInterval)
 })
 </script>
 
