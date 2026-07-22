@@ -29,7 +29,7 @@
         <div v-else class="album-photo-grid">
           <article v-for="(photo, index) in albumPhotos" :key="photo.key" class="photo-tile" :style="{ '--delay': `${Math.min(index * 45, 450)}ms` }">
             <button class="photo-open" type="button" @click="openPhoto(photo)">
-              <img :src="optimizeImage(photo.url, 700)" :alt="albumName" loading="lazy">
+              <img :src="optimizeImage(photo.url, 700)" :alt="albumName" loading="lazy" @error="useBackupImage($event, photo)">
             </button>
             <button class="favorite-btn" :class="photo.isFavorite ? 'active' : ''" type="button" @click="toggleFavorite(photo)">♥</button>
           </article>
@@ -41,7 +41,7 @@
       <div class="lightbox-dialog" @touchstart="onLightboxTouchStart" @touchend="onLightboxTouchEnd">
         <button class="lightbox-close" type="button" @click="closeLightbox">×</button>
         <button v-if="canNavigateLightbox" class="lightbox-nav previous" type="button" @click="previousPhoto">‹</button>
-        <img :src="selectedPhoto.url" :alt="albumName">
+        <img :src="selectedPhoto.url" :alt="albumName" @error="useBackupImage($event, selectedPhoto)">
         <button v-if="canNavigateLightbox" class="lightbox-nav next" type="button" @click="nextPhoto">›</button>
         <div class="lightbox-actions-bar">
           <div class="photo-menu-wrapper">
@@ -98,11 +98,13 @@ const albumName = computed(() => decodeURIComponent(String(route.params.name || 
 const galleryPhotos = computed(() => {
   return photos.value.flatMap((post) => {
     const images = post.imagenes?.length ? post.imagenes : (post.imagen ? [post.imagen] : [])
+    const backups = post.imagenesBackup?.length ? post.imagenesBackup : (post.imagenBackup ? [post.imagenBackup] : [])
     return images.map((url, index) => ({
       key: `${post.id}-${index}`,
       postId: post.id,
       imageIndex: index,
       url,
+      backupUrl: backups[index],
       album: post.categoria || 'Recientes',
       createdAt: post.createdAt,
       isFavorite: post.isFavorite
@@ -141,6 +143,12 @@ const openPhoto = (photo) => {
   selectedPhoto.value = photo
   showPhotoMenu.value = false
   targetAlbum.value = ''
+}
+
+const useBackupImage = (event, photo) => {
+  if (!photo?.backupUrl || event.target.dataset.backupApplied) return
+  event.target.dataset.backupApplied = 'true'
+  event.target.src = photo.backupUrl
 }
 
 const closeLightbox = () => {

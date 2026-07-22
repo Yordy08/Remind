@@ -1,6 +1,7 @@
 import prisma from '../../utils/prisma'
 import { requireAdmin } from '../../utils/admin'
 import cloudinary from '../../utils/cloudinary'
+import { uploadGoogleDriveBackup } from '../../utils/googleDrive'
 
 export default defineEventHandler(async (event) => {
   await requireAdmin(event)
@@ -9,6 +10,8 @@ export default defineEventHandler(async (event) => {
   let title = ''
   let message = ''
   let imageUrl: string | undefined
+  let imageBackupUrl: string | undefined
+  let imageBackupFileId: string | undefined
 
   if (contentType.includes('multipart/form-data')) {
     const formData = await readMultipartFormData(event)
@@ -25,6 +28,16 @@ export default defineEventHandler(async (event) => {
         { folder: 'entrenos/notifications' }
       )
       imageUrl = upload.secure_url
+
+      const backup = await uploadGoogleDriveBackup({
+        buffer: image.data,
+        filename: image.filename || 'notification-image.jpg',
+        mimeType: image.type || 'image/jpeg',
+        folderName: 'notifications'
+      })
+
+      imageBackupUrl = backup?.url
+      imageBackupFileId = backup?.fileId
     }
   } else {
     const body = await readBody(event)
@@ -43,7 +56,9 @@ export default defineEventHandler(async (event) => {
       userId,
       title: title.trim(),
       message: message.trim(),
-      imageUrl
+      imageUrl,
+      imageBackupUrl,
+      imageBackupFileId
     }
   })
 

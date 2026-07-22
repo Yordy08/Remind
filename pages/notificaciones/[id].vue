@@ -19,6 +19,7 @@
           :src="notification.imageUrl"
           :alt="notification.title"
           class="hero-image"
+          @error="useBackupImage($event, notification.imageBackupUrl)"
         >
 
         <div class="detail-body">
@@ -39,7 +40,7 @@
             </div>
 
             <div v-if="paymentProofUrl" class="proof-box mb-3">
-              <img :src="paymentProofUrl" alt="Comprobante de pago">
+              <img :src="paymentProofUrl" alt="Comprobante de pago" @error="useBackupImage($event, paymentProofBackupUrl)">
             </div>
 
             <button
@@ -93,6 +94,16 @@ const targetUserName = computed(() => {
 const paymentProofUrl = computed(() => {
   return notification.value?.targetUser?.paymentProofUrl || notification.value?.imageUrl || ''
 })
+
+const paymentProofBackupUrl = computed(() => {
+  return notification.value?.targetUser?.paymentProofBackupUrl || notification.value?.imageBackupUrl || ''
+})
+
+const useBackupImage = (event, backupUrl) => {
+  if (!backupUrl || event.target.dataset.backupApplied) return
+  event.target.dataset.backupApplied = 'true'
+  event.target.src = backupUrl
+}
 
 const loadNotification = async () => {
   loading.value = true

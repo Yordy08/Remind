@@ -1,6 +1,7 @@
 import prisma from '../../utils/prisma'
 import cloudinary from '../../utils/cloudinary'
 import bcrypt from 'bcryptjs'
+import { uploadGoogleDriveBackup } from '../../utils/googleDrive'
 
 export default defineEventHandler(async (event) => {
   try {
@@ -54,6 +55,8 @@ export default defineEventHandler(async (event) => {
     }
 
     let paymentProofUrl = ''
+    let paymentProofBackupUrl: string | undefined
+    let paymentProofBackupFileId: string | undefined
 
     try {
       const paymentProofUpload = await cloudinary.uploader.upload(toDataUri(paymentProofFile), {
@@ -61,6 +64,16 @@ export default defineEventHandler(async (event) => {
         resource_type: 'image'
       })
       paymentProofUrl = paymentProofUpload.secure_url
+
+      const backup = await uploadGoogleDriveBackup({
+        buffer: paymentProofFile.data,
+        filename: paymentProofFile.filename || 'payment-proof.jpg',
+        mimeType: paymentProofFile.type || 'image/jpeg',
+        folderName: 'payment-proofs'
+      })
+
+      paymentProofBackupUrl = backup?.url
+      paymentProofBackupFileId = backup?.fileId
     } catch (error) {
       console.error('Error subiendo comprobante de pago:', error)
       throw createError({
@@ -83,6 +96,8 @@ export default defineEventHandler(async (event) => {
         estado: 'INACTIVO',
         role: 'USER',
         paymentProofUrl,
+        paymentProofBackupUrl,
+        paymentProofBackupFileId,
         subscriptionStatus: 'PENDING'
       }
     })

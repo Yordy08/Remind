@@ -39,8 +39,9 @@
             </div>
             <div class="profile-info flex-grow-1">
               <h2 class="profile-name mb-1">{{ fullName }}</h2>
-              <p v-if="profile.user.bio" class="profile-bio text-muted mb-2">{{ profile.user.bio }}</p>
-              <div class="profile-meta d-flex flex-wrap gap-3 text-muted small">
+              <p v-if="isPublicProfile" class="profile-bio text-muted mb-2">Perfil público de reseñas</p>
+              <p v-else-if="profile.user.bio" class="profile-bio text-muted mb-2">{{ profile.user.bio }}</p>
+              <div v-if="!isPublicProfile" class="profile-meta d-flex flex-wrap gap-3 text-muted small">
                 <span v-if="profile.user.fechaNacimiento" class="d-flex align-items-center gap-1">
                   🎂 {{ formatBirthDate(profile.user.fechaNacimiento) }}
                 </span>
@@ -64,7 +65,7 @@
       </div>
 
       <!-- Stats Bar -->
-      <div class="profile-stats-bar border-bottom bg-white">
+      <div v-if="!isPublicProfile" class="profile-stats-bar border-bottom bg-white">
         <div class="container">
           <div class="row text-center py-3">
             <div class="col-4">
@@ -90,8 +91,13 @@
           <div class="col-lg-4">
             <div class="card shadow-sm mb-4">
               <div class="card-body">
-                <h5 class="card-title mb-3">📋 Información</h5>
-                <ul class="list-unstyled mb-0">
+                <h5 class="card-title mb-3">{{ isPublicProfile ? 'Perfil público' : '📋 Información' }}</h5>
+                <div v-if="isPublicProfile" class="public-note">
+                  <p class="mb-0 text-muted small">
+                    Por privacidad, este perfil solo muestra el nombre y sus reseñas públicas.
+                  </p>
+                </div>
+                <ul v-else class="list-unstyled mb-0">
                   <li v-if="profile.user.email" class="d-flex align-items-start gap-2 mb-2">
                     <span class="text-muted">📧</span>
                     <span>{{ profile.user.email }}</span>
@@ -155,7 +161,18 @@
             <div class="card shadow-sm">
               <div class="card-body">
                 <h5 class="card-title mb-3">🖼️ Galería</h5>
-                <div v-if="profile.posts.length" class="row g-2">
+                <div v-if="isPublicProfile" class="row g-2 public-gallery">
+                  <div
+                    v-for="(image, index) in publicGalleryImages"
+                    :key="image"
+                    class="col-4"
+                  >
+                    <div class="gallery-thumb ratio ratio-1x1">
+                      <img :src="image" class="img-fluid rounded object-fit-cover public-gallery-img" :alt="`Fotografía privada ${index + 1}`">
+                    </div>
+                  </div>
+                </div>
+                <div v-else-if="profile.posts.length" class="row g-2">
                   <div
                     v-for="post in profile.posts.slice(0, 6)"
                     :key="post.id"
@@ -173,6 +190,23 @@
 
           <!-- Feed de publicaciones -->
           <div class="col-lg-8">
+            <template v-if="isPublicProfile">
+              <h5 class="mb-3">Reseñas públicas</h5>
+              <div v-if="profile.reviews?.length" class="public-reviews-grid">
+                <article v-for="review in profile.reviews" :key="review.id" class="public-review-card shadow-sm">
+                  <div class="review-stars mb-2">{{ '★'.repeat(review.rating) }}</div>
+                  <p class="mb-2">“{{ review.text }}”</p>
+                  <small class="text-muted">{{ formatDate(review.createdAt) }}</small>
+                </article>
+              </div>
+              <div v-else class="card shadow-sm">
+                <div class="card-body text-center text-muted py-5">
+                  <p class="mb-0">Este usuario aún no tiene reseñas públicas.</p>
+                </div>
+              </div>
+            </template>
+
+            <template v-else>
             <h5 class="mb-3">📝 Publicaciones</h5>
             <div v-if="!profile.posts.length" class="card shadow-sm">
               <div class="card-body text-center text-muted py-5">
@@ -328,6 +362,7 @@
                 </div>
               </div>
             </div>
+            </template>
           </div>
         </div>
       </div>
@@ -346,6 +381,15 @@ const loading = ref(true)
 const error = ref(false)
 const profile = ref(null)
 
+const publicGalleryImages = [
+  'https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?auto=format&fit=crop&w=500&q=60',
+  'https://images.unsplash.com/photo-1493246507139-91e8fad9978e?auto=format&fit=crop&w=500&q=60',
+  'https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=500&q=60',
+  'https://images.unsplash.com/photo-1519681393784-d120267933ba?auto=format&fit=crop&w=500&q=60',
+  'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=500&q=60',
+  'https://images.unsplash.com/photo-1447752875215-b2761acb3c5d?auto=format&fit=crop&w=500&q=60'
+]
+
 const currentPassword = ref('')
 const newPassword = ref('')
 const confirmPassword = ref('')
@@ -360,8 +404,10 @@ const expandedPosts = ref(new Set())
 
 const fullName = computed(() => {
   if (!profile.value?.user) return ''
-  return `${profile.value.user.nombre} ${profile.value.user.apellido}`.trim()
+  return `${profile.value.user.nombre || ''} ${profile.value.user.apellido || ''}`.trim()
 })
+
+const isPublicProfile = computed(() => Boolean(profile.value?.publicView))
 
 const loadProfile = async () => {
   if (!userId.value) {
@@ -651,6 +697,57 @@ const changePassword = async () => {
 
 .gallery-thumb:hover img {
   transform: scale(1.05);
+}
+
+.public-note {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 0.85rem;
+  padding: 1rem;
+}
+
+.public-gallery {
+  position: relative;
+}
+
+.public-gallery::after {
+  align-items: center;
+  background: rgba(15, 23, 42, 0.38);
+  border-radius: 0.5rem;
+  color: #fff;
+  content: 'Galería privada';
+  display: flex;
+  font-size: 0.72rem;
+  font-weight: 700;
+  inset: 0;
+  justify-content: center;
+  letter-spacing: 0.04em;
+  margin: 0.25rem;
+  pointer-events: none;
+  position: absolute;
+  text-transform: uppercase;
+}
+
+.public-gallery-img {
+  filter: blur(5px) saturate(0.85);
+  transform: scale(1.08);
+}
+
+.public-reviews-grid {
+  display: grid;
+  gap: 1rem;
+}
+
+.public-review-card {
+  background: #fff;
+  border: 1px solid rgba(13, 110, 253, 0.12);
+  border-radius: 1rem;
+  padding: 1.15rem;
+}
+
+.review-stars {
+  color: #f5b301;
+  letter-spacing: 0.08em;
 }
 
 .object-fit-cover {

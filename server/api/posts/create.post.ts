@@ -1,6 +1,7 @@
 import prisma from '../../utils/prisma'
 import cloudinary from '../../utils/cloudinary'
 import { getUserFromToken } from '../../utils/auth'
+import { uploadGoogleDriveBackup } from '../../utils/googleDrive'
 
 export default defineEventHandler(async (event) => {
 
@@ -48,29 +49,42 @@ export default defineEventHandler(async (event) => {
 
     // 🔥 1. Subir todas las imágenes a Cloudinary en paralelo
     const uploadPromises = files.map((file) => {
-      return new Promise<string>((resolve, reject) => {
+      return new Promise<{ cloudinaryUrl: string, backupUrl?: string, backupFileId?: string }>((resolve, reject) => {
         cloudinary.uploader.upload_stream(
           { folder: 'entrenos/posts' },
-          (error, result) => {
+          async (error, result) => {
             if (error) reject(error)
-            // @ts-ignore
-            else resolve(result.secure_url)
+            else {
+              const backup = await uploadGoogleDriveBackup({
+                buffer: file.data,
+                filename: file.filename || 'post-image.jpg',
+                mimeType: file.type || 'image/jpeg',
+                folderName: 'posts'
+              })
+
+              // @ts-ignore
+              resolve({ cloudinaryUrl: result.secure_url, backupUrl: backup?.url, backupFileId: backup?.fileId })
+            }
           }
         // @ts-ignore
         ).end(file.data)
       })
     })
 
-    const imageUrls = await Promise.all(uploadPromises)
+    const uploadedImages = await Promise.all(uploadPromises)
 
     // Guardar cada imagen como foto independiente para moverla, marcarla y compartirla individualmente.
-    const createdPosts = await Promise.all(imageUrls.map((imageUrl) => {
+    const createdPosts = await Promise.all(uploadedImages.map((image) => {
       return prisma.post.create({
         data: {
           descripcion: '',
           categoria,
-          imagenes: [imageUrl],
-          imagen: imageUrl,
+          imagenes: [image.cloudinaryUrl],
+          imagen: image.cloudinaryUrl,
+          imagenesBackup: image.backupUrl ? [image.backupUrl] : [],
+          imagenesBackupFileIds: image.backupFileId ? [image.backupFileId] : [],
+          imagenBackup: image.backupUrl,
+          imagenBackupFileId: image.backupFileId,
           estado,
           userId: user.id
         }

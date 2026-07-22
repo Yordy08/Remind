@@ -281,10 +281,12 @@ const publicFeatures = [
 const galleryPhotos = computed(() => {
   return photos.value.flatMap((post) => {
     const images = post.imagenes?.length ? post.imagenes : (post.imagen ? [post.imagen] : [])
+    const backups = post.imagenesBackup?.length ? post.imagenesBackup : (post.imagenBackup ? [post.imagenBackup] : [])
     return images.map((url, index) => ({
       key: `${post.id}-${index}`,
       postId: post.id,
       url,
+      backupUrl: backups[index],
       album: post.categoria || 'Recientes',
       createdAt: post.createdAt,
       isFavorite: post.isFavorite
@@ -307,7 +309,7 @@ const visibleReviews = computed(() => {
     userId: review.user?.id,
     rating: review.rating,
     text: review.text,
-    name: `${review.user?.nombre || 'Usuario'} ${review.user?.apellido || ''}`.trim()
+    name: review.user?.nombre || 'Usuario'
   }))
 })
 const carouselReviews = computed(() => {

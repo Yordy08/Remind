@@ -1,9 +1,12 @@
 import prisma from '../../utils/prisma'
+import { getUserFromToken } from '../../utils/auth'
 
 export default defineEventHandler(async (event) => {
   try {
     const query = getQuery(event)
     const userId = query.id as string
+    const tokenUser = getUserFromToken(event)
+    const isPublicView = !tokenUser
 
     if (!userId) {
       throw createError({
@@ -12,20 +15,25 @@ export default defineEventHandler(async (event) => {
       })
     }
 
-    // 1. Buscar usuario (sin password)
     const user = await prisma.user.findUnique({
       where: { id: userId },
-      select: {
-        id: true,
-        nombre: true,
-        apellido: true,
-        email: true,
-        foto: true,
-        bio: true,
-        fechaNacimiento: true,
-        estado: true,
-        createdAt: true
-      }
+      select: isPublicView
+        ? {
+            id: true,
+            nombre: true,
+            foto: true
+          }
+        : {
+            id: true,
+            nombre: true,
+            apellido: true,
+            email: true,
+            foto: true,
+            bio: true,
+            fechaNacimiento: true,
+            estado: true,
+            createdAt: true
+          }
     })
 
     if (!user) {
@@ -35,34 +43,47 @@ export default defineEventHandler(async (event) => {
       })
     }
 
-    // 2. Traer publicaciones públicas del usuario con relaciones
-    const posts = await prisma.post.findMany({
-      where: {
-        userId: userId,
-        estado: 'PUBLICO'
-      },
-      orderBy: {
-        createdAt: 'desc'
-      },
-      include: {
-        user: true,
-        likes: true,
-        tags: true,
-        userTags: {
-          include: {
-            user: true
-          }
-        },
-        comments: {
-          include: {
-            user: true
-          },
-          orderBy: {
-            createdAt: 'asc'
-          }
-        }
+    const reviews = await prisma.review.findMany({
+      where: { userId },
+      orderBy: { createdAt: 'desc' },
+      take: isPublicView ? 10 : 20,
+      select: {
+        id: true,
+        rating: true,
+        text: true,
+        createdAt: true
       }
     })
+
+    const posts = isPublicView
+      ? []
+      : await prisma.post.findMany({
+          where: {
+            userId: userId,
+            estado: 'PUBLICO'
+          },
+          orderBy: {
+            createdAt: 'desc'
+          },
+          include: {
+            user: true,
+            likes: true,
+            tags: true,
+            userTags: {
+              include: {
+                user: true
+              }
+            },
+            comments: {
+              include: {
+                user: true
+              },
+              orderBy: {
+                createdAt: 'asc'
+              }
+            }
+          }
+        })
 
     // 3. Organizar comentarios en padres y respuestas
     const organizeComments = (comments: any[]): any[] => {
@@ -117,8 +138,10 @@ export default defineEventHandler(async (event) => {
 
     return {
       success: true,
+      publicView: isPublicView,
       user: serializedUser,
       posts: serializedPosts,
+      reviews: JSON.parse(JSON.stringify(reviews)),
       stats: {
         postsCount,
         likesReceived,

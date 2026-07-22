@@ -38,7 +38,9 @@ export default defineEventHandler(async (event) => {
         celular: true,
         estado: true,
         subscriptionStatus: true,
-        paymentProofUrl: true
+        paymentProofUrl: true,
+        paymentProofBackupUrl: true,
+        paymentProofBackupFileId: true
       }
     })
   }

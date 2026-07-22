@@ -18,12 +18,16 @@ model User {
   tempPasswordExpires DateTime?
 
   foto             String?
+  fotoBackupUrl    String?
+  fotoBackupFileId String?
   fechaNacimiento  DateTime?
   bio              String?
   estado           String   @default("ACTIVO")
   role             String   @default("USER") // USER | ADMIN
   reviewRequired   Boolean  @default(false)
   paymentProofUrl  String?
+  paymentProofBackupUrl String?
+  paymentProofBackupFileId String?
   subscriptionStatus String @default("PENDING") // PENDING | APPROVED
 
   createdAt DateTime @default(now())
@@ -55,7 +59,11 @@ model Post {
   descripcion String?
   categoria   String   @default("General")
   imagen      String?  // LEGACY: compatibilidad con posts antiguos de 1 sola imagen
+  imagenBackup String?
+  imagenBackupFileId String?
   imagenes    String[] // NUEVO: array de URLs para múltiples imágenes
+  imagenesBackup String[] @default([])
+  imagenesBackupFileIds String[] @default([])
   estado      String   // PUBLICO | PRIVADO
 
   userId      String?   @db.ObjectId
@@ -124,6 +132,8 @@ model Notification {
   title     String
   message   String
   imageUrl  String?
+  imageBackupUrl String?
+  imageBackupFileId String?
   actionType String?
   targetUserId String? @db.ObjectId
   read      Boolean  @default(false)

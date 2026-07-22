@@ -78,7 +78,7 @@
       >
         <button class="lightbox-close" @click="closeLightbox">×</button>
         <button v-if="canNavigateLightbox" class="lightbox-nav previous" type="button" @click="previousPhoto">‹</button>
-        <img :src="selectedPhoto.url" :alt="selectedPhoto.album">
+        <img :src="selectedPhoto.url" :alt="selectedPhoto.album" @error="useBackupImage($event, selectedPhoto)">
         <button v-if="canNavigateLightbox" class="lightbox-nav next" type="button" @click="nextPhoto">›</button>
         <div class="lightbox-actions-bar">
           <div class="photo-menu-wrapper">
@@ -155,11 +155,13 @@ const targetAlbum = ref('')
 const galleryPhotos = computed(() => {
   return photos.value.flatMap((post) => {
     const images = post.imagenes?.length ? post.imagenes : (post.imagen ? [post.imagen] : [])
+    const backups = post.imagenesBackup?.length ? post.imagenesBackup : (post.imagenBackup ? [post.imagenBackup] : [])
     return images.map((url, index) => ({
       key: `${post.id}-${index}`,
       postId: post.id,
       imageIndex: index,
       url,
+      backupUrl: backups[index],
       album: post.categoria || 'Recientes',
       createdAt: post.createdAt,
       isFavorite: post.isFavorite
@@ -216,6 +218,12 @@ const openPhoto = (photo) => {
   selectedPhoto.value = photo
   showPhotoMenu.value = false
   targetAlbum.value = ''
+}
+
+const useBackupImage = (event, photo) => {
+  if (!photo?.backupUrl || event.target.dataset.backupApplied) return
+  event.target.dataset.backupApplied = 'true'
+  event.target.src = photo.backupUrl
 }
 
 const closeLightbox = () => {
